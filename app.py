@@ -6,6 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import boto3
 import io
+import os
 
 # Initialize Flask web application
 app = Flask(__name__)
@@ -79,4 +80,5 @@ def search():
 
 # Run the application when this file is executed directly
 if __name__ == '__main__':
-    app.run(debug=True, port=5001) 
+    port = int(os.environ.get('PORT', 5001))
+    app.run(host='0.0.0.0', port=port, debug=False) 
