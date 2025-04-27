@@ -1,0 +1,9 @@
+*.csv
+*.csv.gz
+*.csv.zip
+*.csv.bz2
+*.csv.tar
+*.csv.tar.gz
+*.csv.tar.bz2
+.aws/
+.env
