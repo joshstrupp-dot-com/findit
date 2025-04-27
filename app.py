@@ -4,13 +4,28 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import boto3
+import io
 
 # Initialize Flask web application
 app = Flask(__name__)
 
-# Step 1: Load the review data from CSV file
-print("Loading data...")
-df = pd.read_csv('reviews_0326.csv')
+# Initialize S3 client
+s3_client = boto3.client('s3')
+
+# Step 1: Load the review data from S3 CSV file
+print("Loading data from S3...")
+bucket_name = 'findit-selfhelp'
+file_name = 'sentiment_analysis_results.csv'
+
+try:
+    response = s3_client.get_object(Bucket=bucket_name, Key=file_name)
+    csv_content = response['Body'].read()
+    df = pd.read_csv(io.BytesIO(csv_content))
+    print("Successfully loaded data from S3")
+except Exception as e:
+    print(f"Error loading data from S3: {str(e)}")
+    raise
 
 # Step 2: Clean the data to handle missing values
 print("Cleaning data...")
@@ -64,4 +79,4 @@ def search():
 
 # Run the application when this file is executed directly
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True, port=5001) 
