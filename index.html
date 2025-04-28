@@ -7,6 +7,10 @@
       href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300&display=swap"
       rel="stylesheet"
     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Andale+Mono&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://cdn.jsdelivr.net/npm/gl-matrix@3.3.0/gl-matrix-min.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
@@ -67,12 +71,52 @@
         height: 100%;
         z-index: 100;
         overflow: hidden;
+        display: none;
+      }
+      #label-left,
+      #label-right {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #808080;
+        font-family: "Andale Mono", monospace;
+        font-size: 18px;
+        font-style: normal;
+        font-weight: 200;
+        line-height: 165px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        z-index: 200;
+        pointer-events: none;
+        user-select: none;
+      }
+      #label-left {
+        left: 25vw;
+        text-align: right;
+      }
+      #label-right {
+        right: 25vw;
+        text-align: left;
       }
     </style>
   </head>
   <body>
     <div id="words-container"></div>
     <canvas id="glcanvas"></canvas>
+    <canvas
+      id="donut-canvas"
+      style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 201;
+      "
+    ></canvas>
+    <div id="label-left">MALCOLM</div>
+    <div id="label-right">GLADWELL</div>
 
     <script>
       console.log("Script loaded");
@@ -256,6 +300,63 @@
             "Somewhat Helpful": [0.6, 1.0, 0.0],
             "Very Helpful": [0.0, 0.4, 0.0],
           };
+          const labelHex = {
+            "Very Harmful": "#FF0000",
+            "Somewhat Harmful": "#FF9900",
+            "Somewhat Helpful": "#99FF00",
+            "Very Helpful": "#006601",
+          };
+
+          // --- Donut chart logic ---
+          // Count label occurrences (ignore missing labels)
+          const labelCounts = {};
+          let totalLabeled = 0;
+          data.forEach((d) => {
+            if (d.predicted_label && labelColors[d.predicted_label]) {
+              labelCounts[d.predicted_label] =
+                (labelCounts[d.predicted_label] || 0) + 1;
+              totalLabeled++;
+            }
+          });
+          // Compute percentages
+          const donutData = Object.entries(labelCounts).map(
+            ([label, count]) => ({
+              label,
+              count,
+              percent: count / totalLabeled,
+            })
+          );
+
+          // Draw donut chart
+          function drawDonut() {
+            const donut = document.getElementById("donut-canvas");
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            donut.width = w;
+            donut.height = h;
+            const ctx = donut.getContext("2d");
+            ctx.clearRect(0, 0, w, h);
+            // Center and radii
+            const cx = w / 2,
+              cy = h / 2;
+            const outerR = Math.min(w, h) * 0.19;
+            const innerR = outerR - Math.max(2, outerR * 0.035); // thinner donut
+            let start = -Math.PI / 2;
+            donutData.forEach((d) => {
+              const end = start + d.percent * 2 * Math.PI;
+              ctx.beginPath();
+              ctx.arc(cx, cy, outerR, start, end, false);
+              ctx.arc(cx, cy, innerR, end, start, true);
+              ctx.closePath();
+              ctx.fillStyle = labelHex[d.label] || "#ccc";
+              ctx.globalAlpha = 0.85;
+              ctx.fill();
+              ctx.globalAlpha = 1.0;
+              start = end;
+            });
+          }
+          drawDonut();
+          window.addEventListener("resize", drawDonut);
 
           const { mat4, vec3 } = glMatrix;
 
