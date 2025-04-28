@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- <title>Review Label Spectrum</title> -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 40px;
+      }
+      #spectrum {
+        position: relative;
+        width: 100%;
+        height: 80px;
+        margin-bottom: 30px;
+        border: 1px solid #ccc;
+      }
+      .label {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        pointer-events: none;
+      }
+      .label .text {
+        font-weight: bold;
+      }
+      .label .percent {
+        display: block;
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <h1>Predicted Label Spectrum</h1> -->
+    <div id="spectrum"></div>
+
+    <script>
+      // fixed order of labels
+      const labels = [
+        "Very Harmful",
+        "Somewhat Harmful",
+        "Somewhat Helpful",
+        "Very Helpful",
+      ];
+
+      // assign a base color to each label
+      const baseColors = [
+        "#ff0000", // Very Harmful (red)
+        "#ff9900", // Somewhat Harmful (orange)
+        "#99ff00", // Somewhat Helpful (lime)
+        "#006600", // Very Helpful (dark green)
+      ];
+
+      // create a piecewise color interpolator across the four stops
+      const colorInterp = d3.piecewise(d3.interpolateLab, baseColors);
+
+      // load the CSV
+      d3.csv("malcolm_gladwell_reviews.csv")
+        .then((data) => {
+          // Filter out reviews without predicted_label
+          const filteredData = data.filter((d) => d.predicted_label);
+          const total = filteredData.length;
+          console.log("Total number of reviews:", total);
+
+          // initialize counts for each label
+          const counts = new Map(labels.map((l) => [l, 0]));
+          filteredData.forEach((d) => {
+            if (counts.has(d.predicted_label)) {
+              counts.set(d.predicted_label, counts.get(d.predicted_label) + 1);
+            }
+          });
+          console.log("Label counts:", Object.fromEntries(counts));
+
+          // compute percentage for each label
+          const percents = labels.map((l) => (counts.get(l) || 0) / total);
+          console.log(
+            "Percentages:",
+            percents.map((p) => (p * 100).toFixed(2) + "%")
+          );
+
+          // compute cumulative boundaries (from 0 to 1)
+          const boundaries = [0];
+          percents.forEach((p) => {
+            const newBoundary = boundaries[boundaries.length - 1] + p;
+            boundaries.push(newBoundary);
+            console.log(
+              `Boundary ${boundaries.length - 1}:`,
+              newBoundary.toFixed(3)
+            );
+          });
+
+          // generate CSS gradient stops at each boundary
+          const stops = boundaries.map((b) => {
+            const stop = `${colorInterp(b)} ${b * 100}%`;
+            console.log("Gradient stop:", stop);
+            return stop;
+          });
+          const gradient = `linear-gradient(to right, ${stops.join(", ")})`;
+
+          // apply gradient background
+          d3.select("#spectrum").style("background", gradient);
+
+          // add labels and percentage text at midpoint of each segment
+          labels.forEach((label, i) => {
+            // Only show label if percentage is greater than 0
+            if (percents[i] > 0) {
+              const mid = (boundaries[i] + boundaries[i + 1]) / 2;
+              console.log(`Midpoint for ${label}:`, mid.toFixed(3));
+
+              d3
+                .select("#spectrum")
+                .append("div")
+                .attr("class", "label")
+                .style("left", `${mid * 100}%`).html(`
+              <span class="text">${label}</span>
+              <span class="percent">${(percents[i] * 100).toFixed(0)}%</span>
+            `);
+            }
+          });
+        })
+        .catch((err) => {
+          console.error("Error loading CSV:", err);
+          d3.select("#spectrum").text("Failed to load data.");
+        });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Review Blob</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/gl-matrix@3.3.0/gl-matrix-min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+      /* ! Basic page layout and styling */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        background-color: #ffffff;
+        overflow: hidden;
+        position: relative; /* For absolute positioning of children */
+      }
+      #glcanvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: transparent;
+      }
+      .adj-word {
+        position: absolute;
+        color: rgba(0, 0, 0, 0.8);
+        font-family: "Libre Franklin", sans-serif;
+        font-weight: 300;
+        pointer-events: none;
+        user-select: none;
+        white-space: nowrap;
+        opacity: 0.7;
+        transition: opacity 5s ease-in-out;
+        text-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
+      }
+      .adj-word.pulsing {
+        animation: pulse 3s infinite alternate ease-in-out;
+      }
+      @keyframes pulse {
+        0% {
+          transform: scale(1) rotate(var(--rotation, 0deg));
+          opacity: var(--base-opacity, 0.3);
+        }
+        100% {
+          transform: scale(1.2) rotate(calc(var(--rotation, 0deg) + 5deg));
+          opacity: calc(var(--base-opacity, 0.5) * 2);
+          text-shadow: 0 0 5px rgba(120, 180, 255, 0.3);
+        }
+      }
+      #words-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 100;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="words-container"></div>
+    <canvas id="glcanvas"></canvas>
+
+    <script>
+      console.log("Script loaded");
+
+      // Load adjectives
+      fetch("all_adjectives.txt")
+        .then((response) => response.text())
+        .then((text) => {
+          console.log("Adjectives loaded");
+          const adjectives = text.trim().split(/\s+/);
+          createAdjectiveBackground(adjectives);
+        })
+        .catch((error) => {
+          console.error("Failed to load adjectives:", error);
+        });
+
+      /* ! Background adjective animation */
+      function createAdjectiveBackground(adjectives) {
+        if (!adjectives || adjectives.length === 0) return;
+
+        const container = document.getElementById("words-container");
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        // Create words at intervals with varying frequencies
+        setInterval(() => {
+          createWordElement(adjectives, width, height);
+        }, 200 + Math.random() * 300); // Random interval between 200-500ms
+
+        // Create initial set of words
+        for (let i = 0; i < 60; i++) {
+          createWordElement(adjectives, width, height, true);
+        }
+
+        // Add subtle animation to the existing words
+        setInterval(() => {
+          const words = container.querySelectorAll(".adj-word");
+          if (words.length > 0) {
+            const randomWord = words[Math.floor(Math.random() * words.length)];
+            const smallMove = 5 + Math.random() * 10;
+            const currentTransform = randomWord.style.transform || "";
+            randomWord.style.transform =
+              currentTransform +
+              ` translate(${Math.random() > 0.5 ? smallMove : -smallMove}px, ${
+                Math.random() > 0.5 ? smallMove : -smallMove
+              }px)`;
+          }
+        }, 2000);
+      }
+
+      function createWordElement(adjectives, width, height, isInitial = false) {
+        const word = document.createElement("div");
+        word.className = "adj-word";
+
+        // Random adjective
+        const randomIndex = Math.floor(Math.random() * adjectives.length);
+        word.textContent = adjectives[randomIndex];
+
+        // Random position
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+
+        // Random size - make some words much larger for variety
+        const baseSize = 8 + Math.random() * 16;
+        const size = Math.random() < 0.1 ? baseSize * 2 : baseSize;
+
+        // Random rotation
+        const rotation = Math.random() * 40 - 20;
+
+        // Apply styles
+        word.style.left = `${x}px`;
+        word.style.top = `${y}px`;
+        word.style.fontSize = `${size}px`;
+        word.style.transform = `rotate(${rotation}deg)`;
+        const baseOpacity = 0.05 + Math.random() * 0.3;
+        word.style.opacity = baseOpacity;
+        word.style.setProperty("--base-opacity", baseOpacity);
+        word.style.setProperty("--rotation", `${rotation}deg`);
+
+        // Random color variation
+        const hue =
+          Math.random() < 0.7
+            ? // 70% chance of cool colors (blues, purples)
+              180 + Math.random() * 60
+            : // 30% chance of warm highlight colors
+              20 + Math.random() * 40;
+        const saturation = 20 + Math.random() * 40;
+        const lightness = 50 + Math.random() * 30;
+        word.style.color = `hsla(${hue}, ${saturation}%, ${lightness}%, ${
+          baseOpacity * 1.5
+        })`;
+
+        // Check if word is near center and add pulsing effect if it is
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const distanceToCenter = Math.sqrt(
+          Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+        );
+        const maxDistance = Math.min(width, height) * 0.3; // 30% of the smaller dimension
+
+        if (distanceToCenter < maxDistance) {
+          word.classList.add("pulsing");
+          // Adjust animation timing to create a wave effect from center
+          const delay = (distanceToCenter / maxDistance) * 2000; // Up to 2s delay based on distance
+          word.style.animationDelay = `${delay}ms`;
+        }
+
+        // Add to container instead of body
+        document.getElementById("words-container").appendChild(word);
+
+        // Different animation for initial vs. dynamically added words
+        const duration = isInitial
+          ? 30000 + Math.random() * 30000 // longer for initial words
+          : 15000 + Math.random() * 20000; // shorter for new words
+
+        // Movement pattern
+        const xMovement = (Math.random() - 0.5) * 100;
+
+        // Random movement pattern
+        let yMovement;
+        const movePattern = Math.floor(Math.random() * 3);
+        if (movePattern === 0) {
+          // Move upward
+          yMovement = -100 - Math.random() * 150;
+        } else if (movePattern === 1) {
+          // Move downward
+          yMovement = 100 + Math.random() * 150;
+        } else {
+          // Move sideways more
+          yMovement = (Math.random() - 0.5) * 60;
+        }
+
+        // Animate position
+        setTimeout(
+          () => {
+            // Only add transition for non-pulsing elements to avoid conflict with animation
+            if (!word.classList.contains("pulsing")) {
+              word.style.transition = `transform ${duration}ms cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${
+                duration * 0.8
+              }ms ease-in-out`;
+              word.style.transform = `translate(${xMovement}px, ${yMovement}px) rotate(${
+                rotation + (Math.random() - 0.5) * 20
+              }deg)`;
+            } else {
+              // For pulsing words, just fade out at the end
+              setTimeout(() => {
+                word.style.transition = `opacity 5s ease-out`;
+                word.style.opacity = 0;
+              }, duration * 0.7);
+            }
+          },
+          isInitial ? Math.random() * 5000 : 10
+        ); // Staggered start for initial words
+
+        // Remove after animation completes
+        setTimeout(() => {
+          word.remove();
+        }, duration + (isInitial ? 5000 : 100));
+      }
+
+      /* ! Data loading and preprocessing */
+      d3.csv("malcolm_gladwell_reviews.csv")
+        .then((data) => {
+          console.log("CSV loaded", data);
+          data.forEach((d) => (d.confidence_score = +d.confidence_score));
+          const nbr_point = data.length;
+
+          /* ! Node size configuration */
+          const reviewLengths = data.map((d) => d.review_text.length);
+          const minLen = d3.min(reviewLengths);
+          const maxLen = d3.max(reviewLengths);
+          const sizeScale = d3
+            .scaleLinear()
+            .domain([minLen, maxLen])
+            .range([1, 10]);
+
+          /* ! Color mapping for different review categories */
+          const labelColors = {
+            "Very Harmful": [1.0, 0.0, 0.0],
+            "Somewhat Harmful": [1.0, 0.6, 0.0],
+            "Somewhat Helpful": [0.6, 1.0, 0.0],
+            "Very Helpful": [0.0, 0.4, 0.0],
+          };
+
+          const { mat4, vec3 } = glMatrix;
+
+          /* ! Sphere geometry generation */
+          function SphereGeometry(n) {
+            const pts = [];
+            for (let i = 0; i < n; i++) {
+              let v = vec3.fromValues(
+                Math.random() - 0.5,
+                Math.random() - 0.5,
+                Math.random() - 0.5
+              );
+              vec3.normalize(v, v);
+              vec3.scale(v, v, 0.3);
+              pts.push(v[0], v[1], v[2]);
+            }
+            return new Float32Array(pts);
+          }
+
+          /* ! Initialize vertex data arrays */
+          const positions = SphereGeometry(nbr_point);
+          const colors = new Float32Array(nbr_point * 3);
+          const sizes = new Float32Array(nbr_point);
+
+          /* ! Assign colors and sizes to vertices */
+          data.forEach((d, i) => {
+            const c = labelColors[d.predicted_label] || [0.5, 0.5, 0.5];
+            colors[i * 3] = c[0];
+            colors[i * 3 + 1] = c[1];
+            colors[i * 3 + 2] = c[2];
+            sizes[i] = sizeScale(d.review_text.length);
+          });
+
+          /* ! WebGL2 initialization and setup */
+          const canvas = document.getElementById("glcanvas");
+          const gl = canvas.getContext("webgl2");
+          if (!gl) alert("Your browser doesn't support WebGL2!");
+
+          /* ! Window resize handling */
+          function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+          }
+          window.addEventListener("resize", resize);
+          resize();
+
+          gl.clearColor(1, 0.976, 0.933, 1);
+          gl.enable(gl.DEPTH_TEST);
+
+          /* ! Shader compilation and setup */
+          const vs = gl.createShader(gl.VERTEX_SHADER);
+          gl.shaderSource(
+            vs,
+            `
+          precision mediump float;
+          attribute vec3 position;
+          attribute vec3 aColor;
+          attribute float pointSize;
+          uniform mat4 uMVP;
+          varying vec3 vColor;
+          void main(){
+            gl_Position = uMVP * vec4(position, 1.0);
+            gl_PointSize = pointSize;
+            vColor = aColor;
+          }
+        `
+          );
+          gl.compileShader(vs);
+
+          const fs = gl.createShader(gl.FRAGMENT_SHADER);
+          gl.shaderSource(
+            fs,
+            `
+          precision mediump float;
+          varying vec3 vColor;
+          void main(){
+            float dist = length(gl_PointCoord - vec2(0.5));
+            if (dist > 0.5) discard; // Only keep pixels inside the circle
+            gl_FragColor = vec4(vColor, 1.0);
+          }
+        `
+          );
+          gl.compileShader(fs);
+
+          /* ! Shader program setup */
+          const program = gl.createProgram();
+          gl.attachShader(program, vs);
+          gl.attachShader(program, fs);
+          gl.linkProgram(program);
+          gl.useProgram(program);
+
+          /* ! Buffer setup and attribute configuration */
+          // Position buffer
+          const posBuf = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+          gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+          const posLoc = gl.getAttribLocation(program, "position");
+          gl.enableVertexAttribArray(posLoc);
+          gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+
+          // Color buffer
+          const colBuf = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
+          gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+          const colLoc = gl.getAttribLocation(program, "aColor");
+          gl.enableVertexAttribArray(colLoc);
+          gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 0, 0);
+
+          // Size buffer
+          const sizeBuf = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuf);
+          gl.bufferData(gl.ARRAY_BUFFER, sizes, gl.STATIC_DRAW);
+          const sizeLoc = gl.getAttribLocation(program, "pointSize");
+          gl.enableVertexAttribArray(sizeLoc);
+          gl.vertexAttribPointer(sizeLoc, 1, gl.FLOAT, false, 0, 0);
+
+          /* ! Matrix setup for 3D transformations */
+          const model = mat4.create();
+          const view = mat4.create();
+          const proj = mat4.create();
+          const mvp = mat4.create();
+
+          mat4.perspective(
+            proj,
+            (Math.PI * 75) / 180,
+            canvas.width / canvas.height,
+            0.1,
+            1000.0
+          );
+          mat4.translate(view, view, [0, 0, -2]);
+
+          /* ! Animation and rendering loop */
+          function draw(now) {
+            now *= 0.001;
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            mat4.identity(model);
+            mat4.rotateX(model, model, now * 0.2);
+            mat4.rotateY(model, model, now * 0.3);
+            mat4.rotateZ(model, model, now * 0.1);
+            mat4.multiply(mvp, view, model);
+            mat4.multiply(mvp, proj, mvp);
+
+            gl.uniformMatrix4fv(
+              gl.getUniformLocation(program, "uMVP"),
+              false,
+              mvp
+            );
+            gl.drawArrays(gl.POINTS, 0, nbr_point);
+            requestAnimationFrame(draw);
+          }
+          requestAnimationFrame(draw);
+        })
+        .catch((err) => {
+          console.error("CSV load failed", err);
+          document.body.innerHTML += "<p style='color:red'>CSV load failed</p>";
+        });
+    </script>
+  </body>
+</html>
