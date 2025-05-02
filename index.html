@@ -26,16 +26,28 @@
       body {
         background-color: #ffffff;
         overflow: hidden;
-        position: relative; /* For absolute positioning of children */
+        display: flex;
+      }
+      #left-panel {
+        width: 30%;
+        height: 100%;
+        overflow-y: auto;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      #right-panel {
+        width: 70%;
+        height: 100%;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       #glcanvas {
         display: block;
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
         background-color: transparent;
+        max-width: 100%;
+        max-height: 100%;
       }
       .adj-word {
         position: absolute;
@@ -73,6 +85,20 @@
         overflow: hidden;
         display: none;
       }
+      #authorList {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .author-item {
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 2px;
+        transition: background-color 0.2s;
+      }
+      .author-item:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
       #label-left,
       #label-right {
         position: absolute;
@@ -101,23 +127,13 @@
     </style>
   </head>
   <body>
-    <div
-      style="
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 300;
-        background: rgba(255, 255, 255, 0.8);
-        padding: 5px;
-        border-radius: 3px;
-      "
-    >
-      <input type="text" id="authorSearch" placeholder="Filter by author..." />
-      <button id="searchButton">Filter</button>
-      <button id="clearButton">Clear</button>
+    <div id="left-panel">
+      <div id="authorList"></div>
     </div>
-    <div id="words-container"></div>
-    <canvas id="glcanvas"></canvas>
+    <div id="right-panel">
+      <div id="words-container"></div>
+      <canvas id="glcanvas"></canvas>
+    </div>
     <!-- <div id="label-left">MALCOLM</div>
     <div id="label-right">GLADWELL</div> -->
 
@@ -291,7 +307,38 @@
           );
           allData.forEach((d) => (d.confidence_score = +d.confidence_score));
 
+          // Get unique authors
+          const uniqueAuthors = [
+            ...new Set(allData.map((d) => d.author_clean)),
+          ].sort();
+
+          // Create author list
+          const authorList = document.getElementById("authorList");
+          const allAuthorsDiv = document.createElement("div");
+          allAuthorsDiv.textContent = "All Authors";
+          allAuthorsDiv.className = "author-item";
+          allAuthorsDiv.onclick = () => {
+            window.currentData = [...window.allData];
+            window.updateVisualization(window.currentData);
+          };
+          authorList.appendChild(allAuthorsDiv);
+
+          uniqueAuthors.forEach((author) => {
+            const authorDiv = document.createElement("div");
+            authorDiv.textContent = author;
+            authorDiv.className = "author-item";
+            authorDiv.onclick = () => {
+              window.currentData = allData.filter(
+                (d) => d.author_clean === author
+              );
+              window.updateVisualization(window.currentData);
+            };
+            authorList.appendChild(authorDiv);
+          });
+
           let currentData = [...allData]; // Start with all data
+          window.currentData = currentData; // Make available globally
+          window.allData = allData; // Make available globally
 
           function updateVisualization(displayData) {
             console.log(
@@ -313,7 +360,7 @@
             const sizeScale = d3
               .scaleLinear()
               .domain([minLen, maxLen])
-              .range([1, 10]);
+              .range([8, 32]);
 
             /* ! Color mapping for different review categories */
             const labelColors = {
@@ -341,7 +388,7 @@
                   Math.random() - 0.5
                 );
                 vec3.normalize(v, v);
-                vec3.scale(v, v, 0.3);
+                vec3.scale(v, v, 0.5);
                 pts.push(v[0], v[1], v[2]);
               }
               return new Float32Array(pts);
@@ -367,8 +414,13 @@
 
             /* ! Window resize handling */
             function resize() {
-              canvas.width = window.innerWidth;
-              canvas.height = window.innerHeight;
+              const rightPanel = document.getElementById("right-panel");
+              const size = Math.min(
+                rightPanel.offsetWidth,
+                rightPanel.offsetHeight
+              );
+              canvas.width = size;
+              canvas.height = size;
               gl.viewport(0, 0, canvas.width, canvas.height);
             }
             window.addEventListener("resize", resize);
@@ -504,36 +556,7 @@
 
           // Initial visualization with all data
           updateVisualization(currentData);
-
-          // Add event listeners for search
-          const searchInput = document.getElementById("authorSearch");
-          const searchButton = document.getElementById("searchButton");
-          const clearButton = document.getElementById("clearButton");
-
-          function performSearch() {
-            const searchTerm = searchInput.value.trim().toLowerCase();
-            if (searchTerm === "") {
-              currentData = [...allData];
-            } else {
-              currentData = allData.filter((d) =>
-                d.author_clean.toLowerCase().includes(searchTerm)
-              );
-            }
-            updateVisualization(currentData);
-          }
-
-          searchButton.addEventListener("click", performSearch);
-          searchInput.addEventListener("keypress", function (event) {
-            if (event.key === "Enter") {
-              performSearch();
-            }
-          });
-
-          clearButton.addEventListener("click", () => {
-            searchInput.value = ""; // Clear the input field
-            currentData = [...allData]; // Reset to all data
-            updateVisualization(currentData); // Update the visualization
-          });
+          window.updateVisualization = updateVisualization; // Make available globally
         })
         .catch((err) => {
           console.error("CSV load failed", err);
