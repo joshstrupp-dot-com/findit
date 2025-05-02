@@ -1,4 +1,5 @@
 /archive/
-
+.csv
 .aws/
 .env
+zeroshot_analysis_results.csv
