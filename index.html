@@ -1,567 +1,765 @@
+<!-- //////////////////// HTML SETUP //////////////////// -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Review Blob</title>
+    <title>Data-Driven Review Sphere</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@300&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Noto+Mono:wght@400&display=swap"
       rel="stylesheet"
     />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Andale+Mono&display=swap"
-      rel="stylesheet"
-    />
-    <script src="https://cdn.jsdelivr.net/npm/gl-matrix@3.3.0/gl-matrix-min.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <!-- //////////////////// STYLES //////////////////// -->
     <style>
-      /* ! Basic page layout and styling */
-      html,
       body {
         margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
         overflow: hidden;
+        background: #2b2b2b;
+        color: #fff;
+        font-family: "Lexend", sans-serif;
       }
-      body {
-        background-color: #ffffff;
-        overflow: hidden;
-        display: flex;
+      canvas {
+        display: block;
       }
-      #left-panel {
-        width: 30%;
-        height: 100%;
-        overflow-y: auto;
-        padding: 20px;
-        box-sizing: border-box;
+      #tooltip {
+        position: absolute;
+        padding: 10px 10px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #fff;
+        border-radius: 4px;
+        pointer-events: none;
+        display: none;
+        font-size: 13px;
+        max-width: 350px;
+        word-wrap: break-word;
+        text-transform: none;
       }
-      #right-panel {
-        width: 70%;
-        height: 100%;
+      #author-search,
+      #search-btn,
+      #reset-btn,
+      #info-btn {
+        background-color: #333;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin-right: 8px;
+        font-family: "Lexend", sans-serif;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+      }
+      #author-search::placeholder {
+        color: #aaa;
+        text-transform: uppercase;
+      }
+      #search-btn:hover,
+      #reset-btn:hover,
+      #info-btn:hover {
+        background-color: #444;
+        cursor: pointer;
+      }
+      #suggestions {
+        font-family: "Lexend", sans-serif;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+      }
+      #label-filters {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 8px;
+        font-family: "Lexend", sans-serif;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+      }
+      #label-filters div {
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      #label-filters label {
+        display: block;
+        margin: 4px 0;
+        cursor: pointer;
+      }
+      #label-filters span {
+        margin-left: 5px;
+        font-family: "Noto Mono", monospace;
+      }
+      /* Custom checkbox styling */
+      .label-checkbox {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #666;
+        border-radius: 3px;
+        background-color: #333;
+        cursor: pointer;
+        position: relative;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+      .label-checkbox:checked {
+        background-color: #333;
+      }
+      .label-checkbox:checked::after {
+        content: "✓";
+        position: absolute;
+        color: #fff;
+        font-size: 12px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .label-checkbox:hover {
+        border-color: #888;
+      }
+
+      /* iOS Style Checkbox */
+      .ios-checkbox {
+        --checkbox-size: 14px;
         position: relative;
         display: flex;
         align-items: center;
-        justify-content: center;
-      }
-      #glcanvas {
-        display: block;
-        background-color: transparent;
-        max-width: 100%;
-        max-height: 100%;
-      }
-      .adj-word {
-        position: absolute;
-        color: rgba(0, 0, 0, 0.8);
-        font-family: "Libre Franklin", sans-serif;
-        font-weight: 300;
-        pointer-events: none;
+        cursor: pointer;
         user-select: none;
-        white-space: nowrap;
-        opacity: 0.7;
-        transition: opacity 5s ease-in-out;
-        text-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
+        -webkit-tap-highlight-color: transparent;
+        margin-bottom: 8px;
       }
-      .adj-word.pulsing {
-        animation: pulse 3s infinite alternate ease-in-out;
-      }
-      @keyframes pulse {
-        0% {
-          transform: scale(1) rotate(var(--rotation, 0deg));
-          opacity: var(--base-opacity, 0.3);
-        }
-        100% {
-          transform: scale(1.2) rotate(calc(var(--rotation, 0deg) + 5deg));
-          opacity: calc(var(--base-opacity, 0.5) * 2);
-          text-shadow: 0 0 5px rgba(120, 180, 255, 0.3);
-        }
-      }
-      #words-container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 100;
-        overflow: hidden;
+
+      .ios-checkbox input {
         display: none;
       }
-      #authorList {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
+
+      .checkbox-wrapper {
+        position: relative;
+        width: var(--checkbox-size);
+        height: var(--checkbox-size);
+        border-radius: 4px;
+        transition: transform 0.2s ease;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 10px;
       }
-      .author-item {
-        cursor: pointer;
-        padding: 5px;
-        border-radius: 2px;
-        transition: background-color 0.2s;
-      }
-      .author-item:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-      }
-      #label-left,
-      #label-right {
+
+      .checkbox-bg {
         position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #808080;
-        font-family: "Andale Mono", monospace;
-        font-size: 18px;
-        font-style: normal;
-        font-weight: 200;
-        line-height: 165px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        z-index: 200;
-        pointer-events: none;
-        user-select: none;
+        inset: 0;
+        border-radius: 4px;
+        border: 2px solid var(--checkbox-border);
+        background: #333;
+        transition: all 0.2s ease;
+        width: 100%;
+        height: 100%;
       }
-      #label-left {
-        left: 25vw;
-        text-align: right;
+
+      /* Checked State: fill with color, remove border */
+      .ios-checkbox input:checked + .checkbox-wrapper .checkbox-bg {
+        background: var(--checkbox-color);
+        border-color: var(--checkbox-color);
       }
-      #label-right {
-        right: 25vw;
-        text-align: left;
+
+      /* Remove checkmark icon entirely */
+      .checkbox-icon {
+        display: none !important;
+      }
+
+      /* Hover Effects */
+      .ios-checkbox:hover .checkbox-wrapper {
+        transform: scale(1.05);
+      }
+
+      /* Active Animation */
+      .ios-checkbox:active .checkbox-wrapper {
+        transform: scale(0.95);
+      }
+
+      /* Focus Styles */
+      .ios-checkbox input:focus + .checkbox-wrapper .checkbox-bg {
+        box-shadow: 0 0 0 2px var(--checkbox-bg);
+      }
+
+      /* Color Themes */
+      .ios-checkbox.very-helpful {
+        --checkbox-color: #68ffa9;
+        --checkbox-bg: rgba(104, 255, 169, 0.2);
+        --checkbox-border: #68ffa9;
+      }
+      .ios-checkbox.somewhat-helpful {
+        --checkbox-color: #ffff68;
+        --checkbox-bg: rgba(255, 255, 104, 0.2);
+        --checkbox-border: #ffff68;
+      }
+      .ios-checkbox.somewhat-harmful {
+        --checkbox-color: #ffae68;
+        --checkbox-bg: rgba(255, 174, 104, 0.2);
+        --checkbox-border: #ffae68;
+      }
+      .ios-checkbox.very-harmful {
+        --checkbox-color: #ff68a7;
+        --checkbox-bg: rgba(255, 104, 167, 0.2);
+        --checkbox-border: #ff68a7;
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+      .ios-checkbox input:checked + .checkbox-wrapper {
+        animation: bounce 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
     </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
   <body>
-    <div id="left-panel">
-      <div id="authorList"></div>
+    <div
+      id="controls"
+      style="position: absolute; top: 10px; left: 10px; z-index: 1"
+    >
+      <input id="author-search" type="text" placeholder="Search author" />
+      <button id="search-btn">Search</button>
+      <button id="reset-btn">Reset</button>
+      <div
+        id="suggestions"
+        style="
+          position: absolute;
+          top: 30px;
+          left: 0;
+          background: rgba(0, 0, 0, 0.7);
+          color: #fff;
+          border-radius: 4px;
+          max-height: 200px;
+          overflow-y: auto;
+          display: none;
+        "
+      ></div>
     </div>
-    <div id="right-panel">
-      <div id="words-container"></div>
-      <canvas id="glcanvas"></canvas>
+    <div
+      id="info-container"
+      style="position: absolute; top: 10px; right: 10px; z-index: 1"
+    >
+      <button id="info-btn">What is this?</button>
+      <div
+        id="info-dropdown"
+        style="
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0, 0, 0, 0.8);
+          color: #fff;
+          border-radius: 4px;
+          padding: 25px;
+          max-width: 600px;
+          width: 90%;
+          display: none;
+          font-family: 'Noto Mono', monospace;
+          font-size: 14px;
+          line-height: 1.5;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+          z-index: 1000;
+        "
+      >
+        <button
+          class="close-btn"
+          style="
+            color: #ffffff;
+            background: none;
+            border: none;
+            font-size: 24px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            /* text-shadow: 0 0 1px #999; */
+          "
+        >
+          ×
+        </button>
+        <p>
+          Self-help books promise to change your life or improve it through
+          various means - whether exercise, philosophy, or sheer willpower.
+          While star ratings tell us if readers liked a book, they don't reveal
+          whether the book actually helped or potentially harmed readers.
+        </p>
+        <p>
+          This project uses machine learning (zero-shot classification) to
+          analyze over 300,000 reviews across 10,000 self-help books,
+          categorizing them based on whether they were truly helpful or
+          potentially harmful to readers.
+        </p>
+        <p>
+          The results are visualized here as an interactive 3D sphere of data
+          points. Each point represents a review, with colors indicating the
+          sentiment (from very helpful to very harmful) and size showing the
+          review length. Reviews are clustered by book and author, revealing
+          patterns in how different works impact readers.
+        </p>
+        <p>
+          Use the search bar to find specific authors, toggle the checkboxes to
+          filter by review sentiment, and hover over any point to read the full
+          review text and book details.
+        </p>
+        <p>
+          Created by me,
+          <a
+            href="https://joshstrupp.com"
+            style="color: #68ffa9; text-decoration: none"
+            >Josh</a
+          >, to help readers make more informed decisions about self-help
+          literature.
+        </p>
+      </div>
     </div>
-    <!-- <div id="label-left">MALCOLM</div>
-    <div id="label-right">GLADWELL</div> -->
+    <div id="label-filters">
+      <div>Filter by Label:</div>
+      <label class="ios-checkbox very-helpful">
+        <input
+          type="checkbox"
+          class="label-checkbox"
+          value="Very Helpful"
+          checked
+        />
+        <div class="checkbox-wrapper">
+          <div class="checkbox-bg"></div>
+        </div>
+        <span style="color: rgba(104, 255, 169, 0.9)">Very Helpful</span>
+      </label>
+      <label class="ios-checkbox somewhat-helpful">
+        <input
+          type="checkbox"
+          class="label-checkbox"
+          value="Somewhat Helpful"
+          checked
+        />
+        <div class="checkbox-wrapper">
+          <div class="checkbox-bg"></div>
+        </div>
+        <span style="color: rgba(255, 255, 104, 0.9)">Somewhat Helpful</span>
+      </label>
+      <label class="ios-checkbox somewhat-harmful">
+        <input
+          type="checkbox"
+          class="label-checkbox"
+          value="Somewhat Harmful"
+          checked
+        />
+        <div class="checkbox-wrapper">
+          <div class="checkbox-bg"></div>
+        </div>
+        <span style="color: rgba(255, 174, 104, 0.9)">Somewhat Harmful</span>
+      </label>
+      <label class="ios-checkbox very-harmful">
+        <input
+          type="checkbox"
+          class="label-checkbox"
+          value="Very Harmful"
+          checked
+        />
+        <div class="checkbox-wrapper">
+          <div class="checkbox-bg"></div>
+        </div>
+        <span style="color: rgba(255, 104, 167, 0.9)">Very Harmful</span>
+      </label>
+    </div>
+    <canvas id="three-canvas"></canvas>
+    <div id="tooltip"></div>
+    <div
+      id="size-legend"
+      style="
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+        z-index: 2;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 7px;
+        padding: 7px 12px 7px 12px;
+        text-align: center;
+        font-family: 'Lexend', sans-serif;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+        min-width: 90px;
+      "
+    >
+      <div
+        style="
+          font-weight: 400;
+          font-size: 0.8em;
+          letter-spacing: 0.04em;
+          color: #ffffff;
+          margin-bottom: 12px;
+          font-family: 'Lexend', sans-serif;
+        "
+      >
+        REVIEW LENGTH
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 2px;
+        "
+      >
+        <div style="display: flex; flex-direction: column; align-items: center">
+          <div
+            style="
+              width: 11px;
+              height: 11px;
+              background: #ddd;
+              border-radius: 50%;
+              margin-bottom: 0;
+            "
+          ></div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center">
+          <div
+            style="
+              width: 23px;
+              height: 23px;
+              background: #ddd;
+              border-radius: 50%;
+              margin-bottom: 0;
+            "
+          ></div>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 12px">
+        <div style="font-size: 0.95em; color: #fff; font-weight: 300">
+          50 char
+        </div>
+        <div style="font-size: 0.95em; color: #fff; font-weight: 300">
+          3k+ char
+        </div>
+      </div>
+    </div>
 
-    <script>
-      console.log("Script loaded");
+    <!-- //////////////////// MAIN VISUALIZATION CODE //////////////////// -->
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-      // Load adjectives
-      fetch("all_adjectives.txt")
-        .then((response) => response.text())
-        .then((text) => {
-          console.log("Adjectives loaded");
-          const adjectives = text.trim().split(/\s+/);
-          createAdjectiveBackground(adjectives);
-        })
-        .catch((error) => {
-          console.error("Failed to load adjectives:", error);
-        });
-
-      /* ! Background adjective animation */
-      function createAdjectiveBackground(adjectives) {
-        if (!adjectives || adjectives.length === 0) return;
-
-        const container = document.getElementById("words-container");
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-
-        // Create words at intervals with varying frequencies
-        setInterval(() => {
-          createWordElement(adjectives, width, height);
-        }, 200 + Math.random() * 300); // Random interval between 200-500ms
-
-        // Create initial set of words
-        for (let i = 0; i < 60; i++) {
-          createWordElement(adjectives, width, height, true);
+      //////////////////// UTILITY FUNCTIONS ////////////////////
+      // Helper: string -> [0,1] hash
+      function hashTo01(str) {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) {
+          h = (h << 5) - h + str.charCodeAt(i);
+          h |= 0;
         }
+        return (h >>> 0) / 0xffffffff;
+      }
 
-        // Add subtle animation to the existing words
-        setInterval(() => {
-          const words = container.querySelectorAll(".adj-word");
-          if (words.length > 0) {
-            const randomWord = words[Math.floor(Math.random() * words.length)];
-            const smallMove = 5 + Math.random() * 10;
-            const currentTransform = randomWord.style.transform || "";
-            randomWord.style.transform =
-              currentTransform +
-              ` translate(${Math.random() > 0.5 ? smallMove : -smallMove}px, ${
-                Math.random() > 0.5 ? smallMove : -smallMove
-              }px)`;
+      //////////////////// CONSTANTS & SETUP ////////////////////
+      // Map labels to colors
+      const labelColor = {
+        "Very Harmful": "#FF68A7",
+        "Somewhat Harmful": "#FFAE68",
+        "Somewhat Helpful": "#FFFF68",
+        "Very Helpful": "#68FFA9",
+      };
+
+      const canvas = document.getElementById("three-canvas");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(0, 0, 40);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+      const tooltip = document.getElementById("tooltip");
+
+      //////////////////// DATA LOADING & VISUALIZATION ////////////////////
+      // Load CSV and build point cloud
+      d3.csv("zeroshot_analysis_results.csv").then((raw) => {
+        const allData = raw.filter((d) => d.predicted_label);
+        let data = allData;
+
+        // Precompute size scale using full dataset
+        const lengths = allData.map((d) => d.review_text.length);
+        const sizeScale = d3
+          .scaleLinear()
+          .domain(d3.extent(lengths))
+          .range([4, 20]);
+
+        // Create geometry and material once
+        const geom = new THREE.BufferGeometry();
+        const material = new THREE.ShaderMaterial({
+          vertexColors: true,
+          transparent: true,
+          depthTest: true,
+          vertexShader: `
+          attribute float size;
+          varying vec3 vColor;
+          void main() {
+            vColor = color;
+            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * (200.0 / -mvPos.z);
+            gl_Position = projectionMatrix * mvPos;
           }
-        }, 2000);
-      }
+        `,
+          fragmentShader: `
+          varying vec3 vColor;
+          void main() {
+            float d = distance(gl_PointCoord, vec2(0.5));
+            if (d > 0.5) discard;
+            gl_FragColor = vec4(vColor, 1.0);
+          }
+        `,
+        });
+        const points = new THREE.Points(geom, material);
+        scene.add(points);
 
-      function createWordElement(adjectives, width, height, isInitial = false) {
-        const word = document.createElement("div");
-        word.className = "adj-word";
+        // Function to update point positions, colors, sizes
+        function updatePoints() {
+          const positions = [];
+          const colors = [];
+          const sizes = [];
 
-        // Random adjective
-        const randomIndex = Math.floor(Math.random() * adjectives.length);
-        word.textContent = adjectives[randomIndex];
+          // Calculate dynamic radius based on number of points
+          const baseRadius = 20;
+          const minRadius = 20;
+          const maxRadius = 40;
+          const radiusScale = d3
+            .scaleLinear()
+            .domain([1, allData.length])
+            .range([minRadius, maxRadius])
+            .clamp(true);
+          const r = radiusScale(data.length);
 
-        // Random position
-        const x = Math.random() * width;
-        const y = Math.random() * height;
-
-        // Random size - make some words much larger for variety
-        const baseSize = 8 + Math.random() * 16;
-        const size = Math.random() < 0.1 ? baseSize * 2 : baseSize;
-
-        // Random rotation
-        const rotation = Math.random() * 40 - 20;
-
-        // Apply styles
-        word.style.left = `${x}px`;
-        word.style.top = `${y}px`;
-        word.style.fontSize = `${size}px`;
-        word.style.transform = `rotate(${rotation}deg)`;
-        const baseOpacity = 0.05 + Math.random() * 0.3;
-        word.style.opacity = baseOpacity;
-        word.style.setProperty("--base-opacity", baseOpacity);
-        word.style.setProperty("--rotation", `${rotation}deg`);
-
-        // Random color variation
-        const hue =
-          Math.random() < 0.7
-            ? // 70% chance of cool colors (blues, purples)
-              180 + Math.random() * 60
-            : // 30% chance of warm highlight colors
-              20 + Math.random() * 40;
-        const saturation = 20 + Math.random() * 40;
-        const lightness = 50 + Math.random() * 30;
-        word.style.color = `hsla(${hue}, ${saturation}%, ${lightness}%, ${
-          baseOpacity * 1.5
-        })`;
-
-        // Check if word is near center and add pulsing effect if it is
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const distanceToCenter = Math.sqrt(
-          Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
-        );
-        const maxDistance = Math.min(width, height) * 0.3; // 30% of the smaller dimension
-
-        if (distanceToCenter < maxDistance) {
-          word.classList.add("pulsing");
-          // Adjust animation timing to create a wave effect from center
-          const delay = (distanceToCenter / maxDistance) * 2000; // Up to 2s delay based on distance
-          word.style.animationDelay = `${delay}ms`;
-        }
-
-        // Add to container instead of body
-        document.getElementById("words-container").appendChild(word);
-
-        // Different animation for initial vs. dynamically added words
-        const duration = isInitial
-          ? 30000 + Math.random() * 30000 // longer for initial words
-          : 15000 + Math.random() * 20000; // shorter for new words
-
-        // Movement pattern
-        const xMovement = (Math.random() - 0.5) * 100;
-
-        // Random movement pattern
-        let yMovement;
-        const movePattern = Math.floor(Math.random() * 3);
-        if (movePattern === 0) {
-          // Move upward
-          yMovement = -100 - Math.random() * 150;
-        } else if (movePattern === 1) {
-          // Move downward
-          yMovement = 100 + Math.random() * 150;
-        } else {
-          // Move sideways more
-          yMovement = (Math.random() - 0.5) * 60;
-        }
-
-        // Animate position
-        setTimeout(
-          () => {
-            // Only add transition for non-pulsing elements to avoid conflict with animation
-            if (!word.classList.contains("pulsing")) {
-              word.style.transition = `transform ${duration}ms cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${
-                duration * 0.8
-              }ms ease-in-out`;
-              word.style.transform = `translate(${xMovement}px, ${yMovement}px) rotate(${
-                rotation + (Math.random() - 0.5) * 20
-              }deg)`;
-            } else {
-              // For pulsing words, just fade out at the end
-              setTimeout(() => {
-                word.style.transition = `opacity 5s ease-out`;
-                word.style.opacity = 0;
-              }, duration * 0.7);
-            }
-          },
-          isInitial ? Math.random() * 5000 : 10
-        ); // Staggered start for initial words
-
-        // Remove after animation completes
-        setTimeout(() => {
-          word.remove();
-        }, duration + (isInitial ? 5000 : 100));
-      }
-
-      /* ! Data loading and preprocessing */
-
-      d3.csv("zeroshot_analysis_results.csv")
-        .then((data) => {
-          console.log("CSV loaded", data);
-          // Filter out records missing predicted_labels
-          let allData = data.filter(
-            (d) => d.predicted_label && d.predicted_label.trim() !== ""
-          );
-          allData.forEach((d) => (d.confidence_score = +d.confidence_score));
-
-          // Get unique authors
-          const uniqueAuthors = [
-            ...new Set(allData.map((d) => d.author_clean)),
-          ].sort();
-
-          // Create author list
-          const authorList = document.getElementById("authorList");
-          const allAuthorsDiv = document.createElement("div");
-          allAuthorsDiv.textContent = "All Authors";
-          allAuthorsDiv.className = "author-item";
-          allAuthorsDiv.onclick = () => {
-            window.currentData = [...window.allData];
-            window.updateVisualization(window.currentData);
-          };
-          authorList.appendChild(allAuthorsDiv);
-
-          uniqueAuthors.forEach((author) => {
-            const authorDiv = document.createElement("div");
-            authorDiv.textContent = author;
-            authorDiv.className = "author-item";
-            authorDiv.onclick = () => {
-              window.currentData = allData.filter(
-                (d) => d.author_clean === author
-              );
-              window.updateVisualization(window.currentData);
-            };
-            authorList.appendChild(authorDiv);
+          // Group data by book/author
+          const groupMap = {};
+          data.forEach((d) => {
+            const key = d.name + "||" + d.author_clean;
+            if (!groupMap[key]) groupMap[key] = [];
+            groupMap[key].push(d);
           });
 
-          let currentData = [...allData]; // Start with all data
-          window.currentData = currentData; // Make available globally
-          window.allData = allData; // Make available globally
-
-          function updateVisualization(displayData) {
-            console.log(
-              `Updating visualization with ${displayData.length} points.`
-            );
-            const nbr_point = displayData.length;
-            if (nbr_point === 0) {
-              // Handle case with no data (e.g., clear canvas or show message)
-              // For now, just clear and stop to prevent errors
-              gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-              console.log("No data to display for this filter.");
-              return; // Stop further processing if no data
-            }
-
-            /* ! Node size configuration */
-            const reviewLengths = displayData.map((d) => d.review_text.length);
-            const minLen = d3.min(reviewLengths);
-            const maxLen = d3.max(reviewLengths);
-            const sizeScale = d3
-              .scaleLinear()
-              .domain([minLen, maxLen])
-              .range([8, 32]);
-
-            /* ! Color mapping for different review categories */
-            const labelColors = {
-              "Very Harmful": [1.0, 0.0, 0.0],
-              "Somewhat Harmful": [1.0, 0.6, 0.0],
-              "Somewhat Helpful": [0.6, 1.0, 0.0],
-              "Very Helpful": [0.0, 0.4, 0.0],
-            };
-            const labelHex = {
-              "Very Harmful": "#FF0000",
-              "Somewhat Harmful": "#FF9900",
-              "Somewhat Helpful": "#99FF00",
-              "Very Helpful": "#006601",
-            };
-
-            const { mat4, vec3 } = glMatrix;
-
-            /* ! Sphere geometry generation */
-            function SphereGeometry(n) {
-              const pts = [];
-              for (let i = 0; i < n; i++) {
-                let v = vec3.fromValues(
-                  Math.random() - 0.5,
-                  Math.random() - 0.5,
-                  Math.random() - 0.5
-                );
-                vec3.normalize(v, v);
-                vec3.scale(v, v, 0.5);
-                pts.push(v[0], v[1], v[2]);
-              }
-              return new Float32Array(pts);
-            }
-
-            /* ! Assign colors and sizes to vertices */
-            const positions = SphereGeometry(nbr_point); // Generate geometry for the correct number of points
-            const colors = new Float32Array(nbr_point * 3);
-            const sizes = new Float32Array(nbr_point);
-
-            displayData.forEach((d, i) => {
-              const c = labelColors[d.predicted_label] || [0.5, 0.5, 0.5];
-              colors[i * 3] = c[0];
-              colors[i * 3 + 1] = c[1];
-              colors[i * 3 + 2] = c[2];
-              sizes[i] = sizeScale(d.review_text.length);
+          // For each group, assign a cluster offset
+          Object.entries(groupMap).forEach(([key, group]) => {
+            // Compute the base position for the group
+            const t = hashTo01(group[0].name) * Math.PI * 2;
+            const p = (hashTo01(group[0].author_clean) - 0.5) * Math.PI;
+            const baseX = r * Math.cos(p) * Math.cos(t);
+            const baseY = r * Math.sin(p);
+            const baseZ = r * Math.cos(p) * Math.sin(t);
+            // Cluster radius (spread)
+            const clusterRadius = 1.5; // tweak for more/less spread
+            group.forEach((d, i) => {
+              // Deterministic angle/offset for each review in the group
+              const angle = (2 * Math.PI * i) / group.length;
+              const offsetR =
+                clusterRadius * (0.5 + 0.5 * hashTo01(d.review_text));
+              const dx = Math.cos(angle) * offsetR;
+              const dy = Math.sin(angle) * offsetR;
+              // Place in a small circle around the base position
+              positions.push(baseX + dx, baseY + dy, baseZ);
+              const hex = labelColor[d.predicted_label] || "#888";
+              const col = new THREE.Color(hex);
+              colors.push(col.r, col.g, col.b);
+              sizes.push(sizeScale(d.review_text.length));
             });
+          });
 
-            /* ! WebGL2 initialization and setup */
-            const canvas = document.getElementById("glcanvas");
-            const gl = canvas.getContext("webgl2");
-            if (!gl) alert("Your browser doesn't support WebGL2!");
+          geom.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(positions, 3)
+          );
+          geom.setAttribute(
+            "color",
+            new THREE.Float32BufferAttribute(colors, 3)
+          );
+          geom.setAttribute("size", new THREE.Float32BufferAttribute(sizes, 1));
+        }
 
-            /* ! Window resize handling */
-            function resize() {
-              const rightPanel = document.getElementById("right-panel");
-              const size = Math.min(
-                rightPanel.offsetWidth,
-                rightPanel.offsetHeight
-              );
-              canvas.width = size;
-              canvas.height = size;
-              gl.viewport(0, 0, canvas.width, canvas.height);
-            }
-            window.addEventListener("resize", resize);
-            resize();
+        // Initial render
+        updatePoints();
 
-            gl.clearColor(1, 0.976, 0.933, 1);
-            gl.enable(gl.DEPTH_TEST);
+        // Search and reset handlers
+        const searchInput = document.getElementById("author-search");
+        const suggestionsDiv = document.getElementById("suggestions");
+        const labelCheckboxes = document.querySelectorAll(".label-checkbox");
 
-            /* ! Shader compilation and setup */
-            const vs = gl.createShader(gl.VERTEX_SHADER);
-            gl.shaderSource(
-              vs,
-              `
-            precision mediump float;
-            attribute vec3 position;
-            attribute vec3 aColor;
-            attribute float pointSize;
-            uniform mat4 uMVP;
-            varying vec3 vColor;
-            void main(){
-              gl_Position = uMVP * vec4(position, 1.0);
-              gl_PointSize = pointSize;
-              vColor = aColor;
-            }
-          `
-            );
-            gl.compileShader(vs);
+        // Function to get active label filters
+        function getActiveLabels() {
+          return Array.from(labelCheckboxes)
+            .filter((checkbox) => checkbox.checked)
+            .map((checkbox) => checkbox.value);
+        }
 
-            const fs = gl.createShader(gl.FRAGMENT_SHADER);
-            gl.shaderSource(
-              fs,
-              `
-            precision mediump float;
-            varying vec3 vColor;
-            void main(){
-              float dist = length(gl_PointCoord - vec2(0.5));
-              if (dist > 0.5) discard; // Only keep pixels inside the circle
-              gl_FragColor = vec4(vColor, 1.0);
-            }
-          `
-            );
-            gl.compileShader(fs);
+        // Function to apply all filters
+        function applyFilters() {
+          const query = searchInput.value.trim().toLowerCase();
+          const activeLabels = getActiveLabels();
 
-            /* ! Shader program setup */
-            const program = gl.createProgram();
-            gl.attachShader(program, vs);
-            gl.attachShader(program, fs);
-            gl.linkProgram(program);
-            gl.useProgram(program);
+          data = allData.filter((d) => {
+            const matchesAuthor =
+              query.length === 0 ||
+              d.author_clean.toLowerCase().includes(query);
+            const matchesLabel = activeLabels.includes(d.predicted_label);
+            return matchesAuthor && matchesLabel;
+          });
 
-            /* ! Buffer setup and attribute configuration */
-            // Position buffer
-            const posBuf = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW); // Use STATIC_DRAW if positions don't change often, or DYNAMIC_DRAW if they update frequently per point
-            const posLoc = gl.getAttribLocation(program, "position");
-            gl.enableVertexAttribArray(posLoc);
-            gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+          updatePoints();
+        }
 
-            // Color buffer
-            const colBuf = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
-            gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
-            const colLoc = gl.getAttribLocation(program, "aColor");
-            gl.enableVertexAttribArray(colLoc);
-            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 0, 0);
-
-            // Size buffer
-            const sizeBuf = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuf);
-            gl.bufferData(gl.ARRAY_BUFFER, sizes, gl.STATIC_DRAW);
-            const sizeLoc = gl.getAttribLocation(program, "pointSize");
-            gl.enableVertexAttribArray(sizeLoc);
-            gl.vertexAttribPointer(sizeLoc, 1, gl.FLOAT, false, 0, 0);
-
-            /* ! Matrix setup for 3D transformations */
-            const model = mat4.create();
-            const view = mat4.create();
-            const proj = mat4.create();
-            const mvp = mat4.create();
-
-            mat4.perspective(
-              proj,
-              (Math.PI * 75) / 180,
-              canvas.width / canvas.height,
-              0.1,
-              1000.0
-            );
-            mat4.translate(view, view, [0, 0, -2]);
-
-            let animationFrameId = null; // Keep track of the animation frame
-
-            /* ! Animation and rendering loop */
-            function draw(now) {
-              // Cancel previous frame to avoid multiple loops if updateVisualization is called rapidly
-              if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-              }
-
-              if (displayData.length === 0) {
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear if no data
-                return; // Don't draw or request next frame
-              }
-
-              now *= 0.001;
-              gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-              mat4.identity(model);
-              mat4.rotateX(model, model, now * 0.2);
-              mat4.rotateY(model, model, now * 0.3);
-              mat4.rotateZ(model, model, now * 0.1);
-              mat4.multiply(mvp, view, model);
-              mat4.multiply(mvp, proj, mvp);
-
-              gl.uniformMatrix4fv(
-                gl.getUniformLocation(program, "uMVP"),
-                false,
-                mvp
-              );
-              gl.drawArrays(gl.POINTS, 0, nbr_point); // Use nbr_point from the current scope
-              animationFrameId = requestAnimationFrame(draw);
-            }
-            // Ensure buffer bindings are correct before drawing
-            gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-            gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-            gl.bindBuffer(gl.ARRAY_BUFFER, colBuf);
-            gl.vertexAttribPointer(colLoc, 3, gl.FLOAT, false, 0, 0);
-            gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuf);
-            gl.vertexAttribPointer(sizeLoc, 1, gl.FLOAT, false, 0, 0);
-
-            requestAnimationFrame(draw); // Start the animation loop for the current data
+        searchInput.addEventListener("input", () => {
+          const query = searchInput.value.trim().toLowerCase();
+          if (query.length === 0) {
+            suggestionsDiv.style.display = "none";
+            return;
           }
-
-          // Initial visualization with all data
-          updateVisualization(currentData);
-          window.updateVisualization = updateVisualization; // Make available globally
-        })
-        .catch((err) => {
-          console.error("CSV load failed", err);
-          document.body.innerHTML += "<p style='color:red'>CSV load failed</p>";
+          const matches = allData.filter((d) =>
+            d.author_clean.toLowerCase().includes(query)
+          );
+          const uniqueAuthors = [
+            ...new Set(matches.map((d) => d.author_clean)),
+          ];
+          suggestionsDiv.innerHTML = uniqueAuthors
+            .map(
+              (author) =>
+                `<div style="padding: 5px; cursor: pointer;">${author}</div>`
+            )
+            .join("");
+          suggestionsDiv.style.display =
+            uniqueAuthors.length > 0 ? "block" : "none";
         });
+
+        suggestionsDiv.addEventListener("click", (e) => {
+          if (e.target.tagName === "DIV") {
+            searchInput.value = e.target.textContent;
+            suggestionsDiv.style.display = "none";
+            applyFilters();
+          }
+        });
+
+        document.getElementById("search-btn").addEventListener("click", () => {
+          applyFilters();
+        });
+
+        document.getElementById("reset-btn").addEventListener("click", () => {
+          data = allData;
+          searchInput.value = "";
+          suggestionsDiv.style.display = "none";
+          labelCheckboxes.forEach((checkbox) => (checkbox.checked = true));
+          updatePoints();
+        });
+
+        // Add event listeners for label checkboxes
+        labelCheckboxes.forEach((checkbox) => {
+          checkbox.addEventListener("change", applyFilters);
+        });
+
+        // Hover handling
+        function onPointerMove(event) {
+          pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+          pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+          raycaster.setFromCamera(pointer, camera);
+          const hits = raycaster.intersectObject(points);
+          if (hits.length > 0) {
+            const hit = hits[0];
+            const idx = hit.index;
+            const d = data[idx];
+            tooltip.style.display = "block";
+            tooltip.style.left = event.clientX + 8 + "px";
+            tooltip.style.top = event.clientY + 8 + "px";
+            tooltip.innerHTML = `
+              <div style="font-size: 16px; text-transform: uppercase; margin-bottom: 8px;"><strong>${
+                d.name
+              }</strong></div>
+              <div style="opacity: 0.5; margin: 8px 0; font-family: 'Noto Mono', monospace;">${
+                d.author_clean
+              }</div>
+              <div style="margin-bottom: 8px;"><em style="color: ${
+                labelColor[d.predicted_label]
+              }; font-family: 'Noto Mono', monospace;">${
+              d.predicted_label
+            }</em></div>
+              <div>${
+                d.review_text.length > 500
+                  ? d.review_text.substring(0, 500) + "..."
+                  : d.review_text
+              }</div>
+            `;
+          } else {
+            tooltip.style.display = "none";
+          }
+        }
+
+        window.addEventListener("pointermove", onPointerMove);
+
+        //////////////////// ANIMATION LOOP ////////////////////
+        // render loop
+        function animate() {
+          requestAnimationFrame(animate);
+          points.rotation.y += 0.001;
+          controls.update();
+          renderer.render(scene, camera);
+        }
+        animate();
+
+        // Add info popup toggle
+        const infoBtn = document.getElementById("info-btn");
+        const infoPopup = document.getElementById("info-dropdown");
+        const closeBtn = infoPopup.querySelector(".close-btn");
+
+        infoBtn.addEventListener("click", () => {
+          infoPopup.style.display = "block";
+        });
+
+        closeBtn.addEventListener("click", () => {
+          infoPopup.style.display = "none";
+        });
+
+        // Close popup when clicking outside
+        document.addEventListener("click", (e) => {
+          if (e.target === infoPopup) {
+            infoPopup.style.display = "none";
+          }
+        });
+      });
+
+      //////////////////// WINDOW RESIZE HANDLER ////////////////////
+      // handle resize
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
     </script>
   </body>
 </html>
