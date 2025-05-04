@@ -60,6 +60,9 @@
         font-size: 12px;
         letter-spacing: 0.5px;
       }
+      #author-search {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
       #author-search::placeholder {
         color: #aaa;
         text-transform: uppercase;
@@ -243,6 +246,59 @@
         height: 30px;
         border-radius: 9999px;
         z-index: 1;
+      }
+
+      /* Loader Styles */
+      .loader {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .bar {
+        display: inline-block;
+        width: 3px;
+        height: 20px;
+        background-color: rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+        animation: scale-up4 1s linear infinite;
+      }
+
+      .bar:nth-child(2) {
+        height: 35px;
+        margin: 0 5px;
+        animation-delay: 0.25s;
+      }
+
+      .bar:nth-child(3) {
+        animation-delay: 0.5s;
+      }
+
+      @keyframes scale-up4 {
+        20% {
+          background-color: #ffff;
+          transform: scaleY(1.5);
+        }
+
+        40% {
+          transform: scaleY(1);
+        }
+      }
+
+      .loading-text {
+        position: absolute;
+        top: 50px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: "Noto Mono", monospace;
+        font-size: 10pt;
+        opacity: 0.5;
+        color: white;
+        white-space: nowrap;
       }
 
       .toggle-cont .toggle-input {
@@ -462,6 +518,12 @@
     </div>
     <canvas id="three-canvas"></canvas>
     <div id="tooltip"></div>
+    <div class="loader">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="loading-text">Loading Reviews...</div>
+    </div>
     <div
       id="size-legend"
       style="
@@ -581,9 +643,11 @@
 
       //////////////////// DATA LOADING & VISUALIZATION ////////////////////
       // Load CSV and build point cloud
+      const loader = document.querySelector(".loader");
       d3.csv(
         "https://findit-selfhelp.s3.us-east-1.amazonaws.com/zeroshot_analysis_results.csv"
       ).then((raw) => {
+        loader.style.display = "none";
         const allData = raw.filter((d) => d.predicted_label);
         let data = allData;
 
