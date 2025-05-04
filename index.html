@@ -36,25 +36,26 @@
         padding: 10px 10px;
         background: rgba(0, 0, 0, 0.9);
         color: #fff;
-        border-radius: 4px;
+        border-radius: 2px;
         pointer-events: none;
         display: none;
-        font-size: 13px;
+        font-size: 12px;
         max-width: 350px;
         word-wrap: break-word;
         text-transform: none;
+        font-family: "Noto Mono", monospace;
       }
       #author-search,
       #search-btn,
       #reset-btn,
       #info-btn {
-        background-color: #333;
+        background-color: rgba(0, 0, 0, 0.9);
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 2px;
         padding: 8px 12px;
         margin-right: 8px;
-        font-family: "Lexend", sans-serif;
+        font-family: "Noto Mono", monospace;
         text-transform: uppercase;
         font-size: 12px;
         letter-spacing: 0.5px;
@@ -66,23 +67,25 @@
       #search-btn:hover,
       #reset-btn:hover,
       #info-btn:hover {
-        background-color: #444;
+        background-color: rgba(0, 0, 0, 0.95);
         cursor: pointer;
       }
       #suggestions {
-        font-family: "Lexend", sans-serif;
+        font-family: "Noto Mono", monospace;
         text-transform: uppercase;
         font-size: 12px;
         letter-spacing: 0.5px;
+        background: rgba(0, 0, 0, 0.9);
+        border-radius: 2px;
       }
       #label-filters {
         position: absolute;
         bottom: 20px;
         left: 20px;
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(0, 0, 0, 0.9);
         padding: 15px;
-        border-radius: 8px;
-        font-family: "Lexend", sans-serif;
+        border-radius: 2px;
+        font-family: "Noto Mono", monospace;
         text-transform: uppercase;
         font-size: 12px;
         letter-spacing: 0.5px;
@@ -108,8 +111,8 @@
         width: 14px;
         height: 14px;
         border: 2px solid #666;
-        border-radius: 3px;
-        background-color: #333;
+        border-radius: 2px;
+        background-color: rgba(0, 0, 0, 0.9);
         cursor: pointer;
         position: relative;
         vertical-align: middle;
@@ -151,7 +154,7 @@
         position: relative;
         width: var(--checkbox-size);
         height: var(--checkbox-size);
-        border-radius: 4px;
+        border-radius: 2px;
         transition: transform 0.2s ease;
         display: inline-block;
         vertical-align: middle;
@@ -161,9 +164,9 @@
       .checkbox-bg {
         position: absolute;
         inset: 0;
-        border-radius: 4px;
+        border-radius: 2px;
         border: 2px solid var(--checkbox-border);
-        background: #333;
+        background: rgba(0, 0, 0, 0.9);
         transition: all 0.2s ease;
         width: 100%;
         height: 100%;
@@ -229,6 +232,68 @@
       .ios-checkbox input:checked + .checkbox-wrapper {
         animation: bounce 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
+
+      /* Toggle Button Styles */
+      .toggle-cont {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 30px;
+        border-radius: 9999px;
+        z-index: 1;
+      }
+
+      .toggle-cont .toggle-input {
+        display: none;
+      }
+
+      .toggle-cont .toggle-label {
+        cursor: pointer;
+        position: relative;
+        display: inline-block;
+        padding: 4px;
+        width: 100%;
+        height: 100%;
+        background: #272727;
+        border-radius: 9999px;
+        box-sizing: content-box;
+        box-shadow: 0px 0px 16px -8px #fefefe;
+      }
+
+      .toggle-cont .toggle-label .cont-label-play {
+        position: relative;
+        width: 30px;
+        aspect-ratio: 1 / 1;
+        background: #5e5e5e;
+        border-radius: 9999px;
+        transition: all 0.5s cubic-bezier(1, 0, 0, 1);
+      }
+
+      .toggle-cont .toggle-input:checked + .toggle-label .cont-label-play {
+        background: #f43f5e;
+        transform: translateX(30px);
+      }
+
+      .toggle-cont .toggle-label .label-play {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: inline-block;
+        width: 16px;
+        aspect-ratio: 1 / 1;
+        background: #fefefe;
+        border-radius: 4px;
+        clip-path: polygon(25% 0, 75% 50%, 25% 100%, 25% 51%);
+        transition: all 0.5s cubic-bezier(1, 0, 0, 1);
+      }
+
+      .toggle-cont .toggle-input:checked + .toggle-label .label-play {
+        width: 14px;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+      }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
@@ -255,6 +320,19 @@
         "
       ></div>
     </div>
+    <div class="toggle-cont">
+      <input
+        type="checkbox"
+        id="rotation-toggle"
+        class="toggle-input"
+        checked
+      />
+      <label for="rotation-toggle" class="toggle-label">
+        <div class="cont-label-play">
+          <div class="label-play"></div>
+        </div>
+      </label>
+    </div>
     <div
       id="info-container"
       style="position: absolute; top: 10px; right: 10px; z-index: 1"
@@ -267,15 +345,15 @@
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          background: rgba(0, 0, 0, 0.8);
+          background: rgba(0, 0, 0, 0.9);
           color: #fff;
-          border-radius: 4px;
+          border-radius: 2px;
           padding: 25px;
           max-width: 600px;
           width: 90%;
           display: none;
           font-family: 'Noto Mono', monospace;
-          font-size: 14px;
+          font-size: 12px;
           line-height: 1.5;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
           z-index: 1000;
@@ -295,7 +373,7 @@
             /* text-shadow: 0 0 1px #999; */
           "
         >
-          ×
+          x
         </button>
         <p>
           Self-help books promise to change your life or improve it through
@@ -327,8 +405,7 @@
             href="https://joshstrupp.com"
             style="color: #68ffa9; text-decoration: none"
             >Josh</a
-          >, to help readers make more informed decisions about self-help
-          literature.
+          >.
         </p>
       </div>
     </div>
@@ -389,14 +466,14 @@
       id="size-legend"
       style="
         position: absolute;
-        bottom: 16px;
-        right: 16px;
+        bottom: 20px;
+        right: 20px;
         z-index: 2;
-        background: rgba(0, 0, 0, 0.7);
-        border-radius: 7px;
+        background: rgba(0, 0, 0, 0.9);
+        border-radius: 2px;
         padding: 7px 12px 7px 12px;
         text-align: center;
-        font-family: 'Lexend', sans-serif;
+        font-family: 'Noto Mono', monospace;
         color: #fff;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
         min-width: 90px;
@@ -405,11 +482,11 @@
       <div
         style="
           font-weight: 400;
-          font-size: 0.8em;
+          font-size: 12px;
           letter-spacing: 0.04em;
           color: #ffffff;
           margin-bottom: 12px;
-          font-family: 'Lexend', sans-serif;
+          font-family: 'Noto Mono', monospace;
         "
       >
         REVIEW LENGTH
@@ -504,7 +581,9 @@
 
       //////////////////// DATA LOADING & VISUALIZATION ////////////////////
       // Load CSV and build point cloud
-      d3.csv("zeroshot_analysis_results.csv").then((raw) => {
+      d3.csv(
+        "https://findit-selfhelp.s3.us-east-1.amazonaws.com/zeroshot_analysis_results.csv"
+      ).then((raw) => {
         const allData = raw.filter((d) => d.predicted_label);
         let data = allData;
 
@@ -726,7 +805,10 @@
         // render loop
         function animate() {
           requestAnimationFrame(animate);
-          points.rotation.y += 0.001;
+          const rotationToggle = document.getElementById("rotation-toggle");
+          if (rotationToggle.checked) {
+            points.rotation.y += 0.001;
+          }
           controls.update();
           renderer.render(scene, camera);
         }
