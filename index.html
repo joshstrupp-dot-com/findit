@@ -636,7 +636,11 @@
         0.1,
         1000
       );
-      camera.position.set(0, 0, 40);
+      camera.position.set(
+        93.8249062976176,
+        -14.513052356383655,
+        68.44704045303914
+      );
 
       const controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
@@ -696,16 +700,10 @@
           const colors = [];
           const sizes = [];
 
-          // Calculate dynamic radius based on number of points
-          const baseRadius = 20;
-          const minRadius = 20;
-          const maxRadius = 40;
-          const radiusScale = d3
-            .scaleLinear()
-            .domain([1, allData.length])
-            .range([minRadius, maxRadius])
-            .clamp(true);
-          const r = radiusScale(data.length);
+          // Define book-like dimensions (thickness is much smaller)
+          const prismWidth = 55,
+            prismHeight = 80,
+            prismDepth = 10;
 
           // Group data by book/author
           const groupMap = {};
@@ -717,13 +715,13 @@
 
           // For each group, assign a cluster offset
           Object.entries(groupMap).forEach(([key, group]) => {
-            // Compute the base position for the group
-            const t = hashTo01(group[0].name) * Math.PI * 2;
-            const p = (hashTo01(group[0].author_clean) - 0.5) * Math.PI;
-            const baseX = r * Math.cos(p) * Math.cos(t);
-            const baseY = r * Math.sin(p);
-            const baseZ = r * Math.cos(p) * Math.sin(t);
-            // Cluster radius (spread)
+            // Compute the base position for the group inside a rectangular prism
+            const baseX = (hashTo01(group[0].name) - 0.5) * prismWidth;
+            const baseY = (hashTo01(group[0].author_clean) - 0.5) * prismHeight;
+            const baseZ =
+              (hashTo01(group[0].name + group[0].author_clean) - 0.5) *
+              prismDepth;
+
             const clusterRadius = 1.5; // tweak for more/less spread
             group.forEach((d, i) => {
               // Deterministic angle/offset for each review in the group
@@ -732,8 +730,10 @@
                 clusterRadius * (0.5 + 0.5 * hashTo01(d.review_text));
               const dx = Math.cos(angle) * offsetR;
               const dy = Math.sin(angle) * offsetR;
-              // Place in a small circle around the base position
-              positions.push(baseX + dx, baseY + dy, baseZ);
+              // Add a small offset in z to spread points in 3D
+              const dz = (hashTo01(d.review_text + "z") - 0.5) * clusterRadius;
+              positions.push(baseX + dx, baseY + dy, baseZ + dz);
+
               const hex = labelColor[d.predicted_label] || "#888";
               const col = new THREE.Color(hex);
               colors.push(col.r, col.g, col.b);
@@ -878,6 +878,7 @@
             points.rotation.y += 0.001;
           }
           controls.update();
+          console.log("Camera position:", camera.position);
           renderer.render(scene, camera);
         }
         animate();
