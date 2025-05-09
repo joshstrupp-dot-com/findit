@@ -517,7 +517,7 @@
         <div class="checkbox-wrapper">
           <div class="checkbox-bg"></div>
         </div>
-        <span style="color: rgba(255, 104, 167, 0.9)">Very Harmful</span>
+        <span style="color: rgba(255, 104, 104, 0.9)">Very Harmful</span>
       </label>
     </div>
     <canvas id="three-canvas"></canvas>
@@ -687,7 +687,12 @@
           void main() {
             float d = distance(gl_PointCoord, vec2(0.5));
             if (d > 0.5) discard;
-            gl_FragColor = vec4(vColor, 1.0);
+            // Add black stroke
+            if (d > 0.45) {
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 0.1);
+            } else {
+              gl_FragColor = vec4(vColor, 0.6);
+            }
           }
         `,
         });
