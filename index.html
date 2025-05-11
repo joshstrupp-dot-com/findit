@@ -1300,7 +1300,7 @@
                 if (activeBookNames.includes(d.name)) {
                   opacities.push(0.6);
                 } else {
-                  opacities.push(0.05);
+                  opacities.push(0.03);
                 }
               } else {
                 opacities.push(0.6);
@@ -1333,8 +1333,8 @@
             center.divideScalar(positions.length / 3);
 
             const distance = Math.max(
-              30,
-              Math.min(50, 40 + positions.length / 100)
+              50,
+              Math.min(70, 60 + positions.length / 100)
             );
             camera.position.set(
               center.x + distance,
