@@ -362,7 +362,7 @@
       id="controls"
       style="position: absolute; top: 10px; left: 10px; z-index: 1"
     >
-      <input id="author-search" type="text" placeholder="Search author" />
+      <input id="author-search" type="text" placeholder="Enter search query" />
       <button id="search-btn">Search</button>
       <button id="reset-btn">Reset</button>
       <div
@@ -772,98 +772,61 @@
             .map((checkbox) => checkbox.value);
         }
 
-        // Function to apply all filters
-        function applyFilters() {
-          const query = searchInput.value.trim().toLowerCase();
+        // Function to apply all filters using recommendations
+        async function applyFilters() {
+          const query = searchInput.value.trim();
           const activeLabels = getActiveLabels();
-
-          data = allData.filter((d) => {
-            const matchesAuthor =
-              query.length === 0 ||
-              d.author_clean.toLowerCase().includes(query);
-            const matchesLabel = activeLabels.includes(d.predicted_label);
-            return matchesAuthor && matchesLabel;
-          });
-
+          if (query.length === 0) {
+            data = allData;
+            updatePoints();
+            return;
+          }
+          console.log(
+            "Fetching recommendations from " +
+              window.location.origin +
+              "/recommend for query:",
+            query
+          );
+          try {
+            const response = await fetch("/recommend", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query }),
+            });
+            if (!response.ok) {
+              const errorMsg = await response.text();
+              console.error(
+                "Recommendation query failed with status",
+                response.status,
+                errorMsg
+              );
+              data = [];
+            } else {
+              const recData = await response.json();
+              const recommendedBooksSet = new Set(
+                recData.books.map((b) => b.toLowerCase())
+              );
+              const recommendedAuthorsSet = new Set(
+                recData.authors.map((a) => a.toLowerCase())
+              );
+              data = allData.filter((d) => {
+                const matchesLabel = activeLabels.includes(d.predicted_label);
+                const matchesRecommendation =
+                  recommendedBooksSet.has(d.name.toLowerCase()) ||
+                  recommendedAuthorsSet.has(d.author_clean.toLowerCase());
+                return matchesRecommendation && matchesLabel;
+              });
+            }
+          } catch (err) {
+            console.error("Error while fetching recommendations", err);
+            data = [];
+          }
           updatePoints();
         }
 
-        searchInput.addEventListener("input", () => {
-          const query = searchInput.value.trim().toLowerCase();
-          if (query.length === 0) {
-            suggestionsDiv.style.display = "none";
-            return;
-          }
-          const matches = allData.filter((d) =>
-            d.author_clean.toLowerCase().includes(query)
-          );
-          const uniqueAuthors = [
-            ...new Set(matches.map((d) => d.author_clean)),
-          ];
-          suggestionsDiv.innerHTML = uniqueAuthors
-            .map(
-              (author) =>
-                `<div style="padding: 5px; cursor: pointer;">${author}</div>`
-            )
-            .join("");
-          suggestionsDiv.style.display =
-            uniqueAuthors.length > 0 ? "block" : "none";
+        document.getElementById("search-btn").addEventListener("click", () => {
+          applyFilters();
         });
-
-        suggestionsDiv.addEventListener("click", (e) => {
-          if (e.target.tagName === "DIV") {
-            searchInput.value = e.target.textContent;
-            suggestionsDiv.style.display = "none";
-            applyFilters();
-          }
-        });
-
-        document
-          .getElementById("search-btn")
-          .addEventListener("click", async () => {
-            const query = document.getElementById("author-search").value.trim();
-            if (!query) {
-              console.log("Empty query, skipping API call");
-              return;
-            }
-            try {
-              const { Client } = await import(
-                "https://cdn.jsdelivr.net/npm/@gradio/client?module"
-              );
-              const client = await Client.connect(
-                "joshstrupp/Self-Help-Book-Recommendation-Engine"
-              );
-              const result = await client.predict("/predict", {
-                concern: query,
-                num_books: 3,
-                num_reviews: 3,
-              });
-              console.log("API result:", result.data);
-
-              // Extract book names using a regex that matches lines starting with the book icon
-              const bookRegex = /📚\s*(.+)/g;
-              const books = [];
-              let match;
-              while ((match = bookRegex.exec(result.data)) !== null) {
-                books.push(match[1].trim());
-              }
-              if (books.length > 0) {
-                console.log("Books extracted from API:", books);
-              } else {
-                console.log("No book names found.");
-              }
-
-              // Filter the data to include only clusters that match the extracted book names
-              // 'allData' and 'data' are declared earlier in the CSV callback scope
-              data = allData.filter((d) => books.includes(d.name));
-              console.log("Filtered data length:", data.length);
-
-              // Update the visualization with the filtered clusters
-              updatePoints();
-            } catch (error) {
-              console.error("Error calling API:", error);
-            }
-          });
 
         document.getElementById("reset-btn").addEventListener("click", () => {
           data = allData;
@@ -871,11 +834,6 @@
           suggestionsDiv.style.display = "none";
           labelCheckboxes.forEach((checkbox) => (checkbox.checked = true));
           updatePoints();
-        });
-
-        // Add event listeners for label checkboxes
-        labelCheckboxes.forEach((checkbox) => {
-          checkbox.addEventListener("change", applyFilters);
         });
 
         // Hover handling
@@ -926,7 +884,7 @@
             points.rotation.y += 0.001;
           }
           controls.update();
-
+          // console.log("Camera position:", camera.position);
           renderer.render(scene, camera);
         }
         animate();
