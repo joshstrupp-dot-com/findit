@@ -51,9 +51,9 @@
       #info-btn {
         background-color: rgba(0, 0, 0, 0.9);
         color: white;
-        border: none;
+        border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 5px;
-        padding: 8px 12px;
+        padding: 8px 15px;
         margin-right: 8px;
         font-family: "Noto Mono", monospace;
         text-transform: uppercase;
@@ -244,7 +244,7 @@
       /* Toggle Button Styles */
       .toggle-cont {
         position: absolute;
-        bottom: 25px;
+        bottom: 30px;
         left: 25px;
         width: 60px;
         height: 30px;
@@ -424,6 +424,37 @@
       #recommendation-cards .book-card {
         cursor: pointer;
       }
+      /* Interaction Instructions Overlay */
+      #interaction-instructions {
+        position: absolute;
+        left: 50%;
+        bottom: 25px;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 32px;
+        align-items: center;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 8px;
+        padding: 7px 16px;
+        font-family: "Noto Mono", monospace;
+        font-size: 10px;
+        pointer-events: none;
+      }
+      .interaction-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #fff;
+        opacity: 0.85;
+      }
+      .interaction-item img {
+        height: 20px;
+        width: auto;
+        display: block;
+        filter: brightness(1.2);
+        pointer-events: none;
+      }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
@@ -461,7 +492,7 @@
     </div>
     <div
       id="info-container"
-      style="position: absolute; bottom: 20px; right: 20px; z-index: 1"
+      style="position: absolute; bottom: 25px; right: 20px; z-index: 1"
     >
       <button id="info-btn">What is this?</button>
       <div
@@ -593,6 +624,21 @@
       <div class="bar"></div>
       <div class="bar"></div>
       <div class="loading-text">Loading Reviews...</div>
+    </div>
+    <!-- Interaction Instructions Overlay -->
+    <div id="interaction-instructions">
+      <div class="interaction-item">
+        <img src="assets/left-click.png" alt="Left Click" />
+        <span>LEFT CLICK + DRAG TO ORBIT</span>
+      </div>
+      <div class="interaction-item">
+        <img src="assets/right-click.png" alt="Right Click" />
+        <span>RIGHT CLICK + DRAG TO PAN</span>
+      </div>
+      <div class="interaction-item">
+        <img src="assets/scroll.png" alt="Scroll" />
+        <span>SCROLL OR PINCH TO ZOOM</span>
+      </div>
     </div>
 
     <!-- Book Recommendation Cards -->
