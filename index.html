@@ -62,6 +62,9 @@
       }
       #author-search {
         border: 1px solid rgba(255, 255, 255, 0.2);
+        min-width: 300px;
+        width: 40vw;
+        max-width: 600px;
       }
       #author-search::placeholder {
         color: #aaa;
@@ -354,31 +357,94 @@
         clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
         border-radius: 5px;
       }
+
+      /* Card Navigation */
+      @keyframes slideOutLeft {
+        0% {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        100% {
+          transform: translateX(-100%);
+          opacity: 0;
+        }
+      }
+
+      @keyframes slideInRight {
+        0% {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        100% {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOutRight {
+        0% {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        100% {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+
+      @keyframes slideInLeft {
+        0% {
+          transform: translateX(-100%);
+          opacity: 0;
+        }
+        100% {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      .card-nav-btn:hover {
+        transform: scale(1.1);
+        background: rgba(0, 0, 0, 0.8);
+      }
+
+      .card-nav-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      .card-nav-btn {
+        opacity: 0.7;
+      }
+
+      .card-nav-btn:hover {
+        opacity: 1;
+      }
+
+      #recommendation-cards .book-card {
+        cursor: pointer;
+      }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
   <body>
     <div
       id="controls"
-      style="position: absolute; top: 10px; left: 10px; z-index: 1"
+      style="position: absolute; top: 25px; left: 25px; z-index: 1"
     >
-      <input id="author-search" type="text" placeholder="Search author" />
+      <input
+        id="author-search"
+        type="text"
+        placeholder="Enter your concern or question"
+      />
       <button id="search-btn">Search</button>
       <button id="reset-btn">Reset</button>
-      <div
-        id="suggestions"
-        style="
-          position: absolute;
-          top: 30px;
-          left: 0;
-          background: rgba(0, 0, 0, 0.7);
-          color: #fff;
-          border-radius: 4px;
-          max-height: 200px;
-          overflow-y: auto;
-          display: none;
-        "
-      ></div>
+    </div>
+    <div
+      id="logo-container"
+      style="position: absolute; top: 25px; right: 25px; z-index: 1"
+    >
+      <img src="logo.svg" alt="Logo" style="height: 100px; width: auto" />
     </div>
     <div class="toggle-cont">
       <input
@@ -395,7 +461,7 @@
     </div>
     <div
       id="info-container"
-      style="position: absolute; top: 10px; right: 10px; z-index: 1"
+      style="position: absolute; bottom: 20px; right: 20px; z-index: 1"
     >
       <button id="info-btn">What is this?</button>
       <div
@@ -455,9 +521,9 @@
           patterns in how different works impact readers.
         </p>
         <p>
-          Use the search bar to find specific authors, toggle the checkboxes to
-          filter by review sentiment, and hover over any point to read the full
-          review text and book details.
+          Use the search bar to enter your own natural language query, toggle
+          the checkboxes to filter by review sentiment, and hover over any point
+          to read the full review text and book details.
         </p>
         <p>
           Created by me,
@@ -517,7 +583,7 @@
         <div class="checkbox-wrapper">
           <div class="checkbox-bg"></div>
         </div>
-        <span style="color: rgba(255, 104, 104, 0.9)">Very Harmful</span>
+        <span style="color: rgba(255, 160, 160, 0.9)">Very Harmful</span>
       </label>
     </div>
     <canvas id="three-canvas"></canvas>
@@ -528,74 +594,140 @@
       <div class="bar"></div>
       <div class="loading-text">Loading Reviews...</div>
     </div>
+
+    <!-- Book Recommendation Cards -->
     <div
-      id="size-legend"
+      id="recommendation-cards"
       style="
         position: absolute;
-        bottom: 20px;
-        right: 20px;
-        z-index: 2;
-        background: rgba(0, 0, 0, 0.9);
-        border-radius: 5px;
-        padding: 7px 12px 7px 12px;
-        text-align: center;
-        font-family: 'Noto Mono', monospace;
-        color: #fff;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
-        min-width: 90px;
+        top: 100px;
+        left: 25px;
+        width: 400px;
+        max-height: 80vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        z-index: 100;
+        display: none;
+        padding-top: 10px;
+        padding-right: 15px;
+        padding-left: 15px;
+        box-sizing: border-box;
       "
     >
       <div
         style="
-          font-weight: 400;
-          font-size: 12px;
-          letter-spacing: 0.04em;
-          color: #ffffff;
-          margin-bottom: 12px;
           font-family: 'Noto Mono', monospace;
+          font-size: 12px;
+          text-transform: uppercase;
+          margin-bottom: 15px;
+          text-align: center;
+          letter-spacing: 1px;
+          font-weight: 600;
         "
       >
-        REVIEW LENGTH
+        Recommended Books
       </div>
-      <div
+      <button
+        id="close-cards-btn"
         style="
-          display: flex;
-          align-items: flex-end;
-          justify-content: center;
-          gap: 12px;
-          margin-bottom: 2px;
+          position: absolute;
+          top: 5px;
+          right: 15px;
+          background: none;
+          border: none;
+          color: #fff;
+          font-size: 20px;
+          cursor: pointer;
+          z-index: 101;
+          opacity: 0.7;
+          transition: opacity 0.2s;
         "
       >
-        <div style="display: flex; flex-direction: column; align-items: center">
-          <div
+        ×
+      </button>
+
+      <!-- Card Stack Container -->
+      <div
+        id="card-stack"
+        style="
+          position: relative;
+          height: 320px;
+          width: 100%;
+          margin-bottom: 60px;
+        "
+      >
+        <!-- Navigation Buttons Container -->
+        <div
+          style="
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+          "
+        >
+          <!-- Previous Button -->
+          <button
+            id="prev-card"
+            class="card-nav-btn"
             style="
-              width: 11px;
-              height: 11px;
-              background: #ddd;
+              display: block;
+              background: rgba(0, 0, 0, 0.6);
+              border: 2px solid rgba(255, 255, 255, 0.7);
               border-radius: 50%;
-              margin-bottom: 0;
+              width: 40px;
+              height: 40px;
+              color: rgba(255, 255, 255, 0.9);
+              text-align: center;
+              line-height: 35px;
+              cursor: pointer;
+              font-size: 20px;
+              z-index: 102;
+              transition: all 0.2s ease;
             "
-          ></div>
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center">
-          <div
+          >
+            &#10094;
+          </button>
+
+          <!-- Next Button -->
+          <button
+            id="next-card"
+            class="card-nav-btn"
             style="
-              width: 23px;
-              height: 23px;
-              background: #ddd;
+              display: block;
+              background: rgba(0, 0, 0, 0.6);
+              border: 2px solid rgba(255, 255, 255, 0.7);
               border-radius: 50%;
-              margin-bottom: 0;
+              width: 40px;
+              height: 40px;
+              color: rgba(255, 255, 255, 0.9);
+              text-align: center;
+              line-height: 35px;
+              cursor: pointer;
+              font-size: 20px;
+              z-index: 102;
+              transition: all 0.2s ease;
             "
-          ></div>
+          >
+            &#10095;
+          </button>
         </div>
-      </div>
-      <div style="display: flex; justify-content: center; gap: 12px">
-        <div style="font-size: 0.95em; color: #fff; font-weight: 300">
-          50 char
-        </div>
-        <div style="font-size: 0.95em; color: #fff; font-weight: 300">
-          3k+ char
-        </div>
+
+        <!-- Card list container -->
+        <ul
+          id="card-container"
+          style="
+            position: relative;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+          "
+        ></ul>
       </div>
     </div>
 
@@ -613,6 +745,407 @@
           h |= 0;
         }
         return (h >>> 0) / 0xffffffff;
+      }
+
+      // Create a recommendation card
+      function createRecommendationCard(book, index, total) {
+        const cardLi = document.createElement("li");
+        cardLi.className = "book-card";
+        cardLi.style.cssText = `
+          background: rgba(0, 0, 0, 0.9);
+          color: #fff;
+          border-radius: 10px;
+          padding: 15px;
+          margin-bottom: 15px;
+          font-family: 'Lexend', sans-serif;
+          width: 100%;
+          box-sizing: border-box;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          position: absolute;
+          transition: all 300ms ease-in-out;
+          list-style: none;
+          height: auto;
+          left: 0;
+          right: 0;
+          margin: 0 auto;
+          opacity: ${index === 0 ? 1 : 0.6 - index * 0.1};
+          transform: translateY(${index * 12}px) scale(${1 - index * 0.05});
+          z-index: ${total - index};
+          ${index > 0 ? "pointer-events: none;" : ""}
+        `;
+
+        // Title
+        const titleDiv = document.createElement("div");
+        titleDiv.style.cssText = `
+          font-size: 16px;
+          font-weight: 700;
+          margin-bottom: 5px;
+          text-transform: uppercase;
+        `;
+        titleDiv.textContent = book.name;
+        cardLi.appendChild(titleDiv);
+
+        // Author
+        const authorDiv = document.createElement("div");
+        authorDiv.style.cssText = `
+          font-size: 13px;
+          margin-bottom: 6px;
+          opacity: 0.7;
+        `;
+        authorDiv.textContent = book.author;
+        cardLi.appendChild(authorDiv);
+
+        // Rating and Price
+        const ratingDiv = document.createElement("div");
+        ratingDiv.style.cssText = `
+          font-size: 12px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+        `;
+        ratingDiv.innerHTML = `⭐️: ${book.rating || "N/A"} ${
+          book.price ? ` • ${book.price}` : ""
+        }`;
+        cardLi.appendChild(ratingDiv);
+
+        // Helpful Bar
+        if (book.helpfulRatio) {
+          const helpfulLabel = document.createElement("div");
+          helpfulLabel.style.cssText = `
+            font-size: 11px;
+            margin-bottom: 6px;
+            opacity: 0.8;
+            font-family: 'Noto Mono', monospace;
+          `;
+          helpfulLabel.textContent = "READER HELPFULNESS";
+          cardLi.appendChild(helpfulLabel);
+
+          const barContainer = document.createElement("div");
+          barContainer.style.cssText = `
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+          `;
+
+          const bar = document.createElement("div");
+          const helpfulColor = "#68FFA9"; // Green for helpful
+          bar.style.cssText = `
+            width: ${book.helpfulRatio * 100}%;
+            height: 100%;
+            background: ${helpfulColor};
+            border-radius: 4px;
+            transition: width 0.5s ease;
+          `;
+          barContainer.appendChild(bar);
+
+          const barLabel = document.createElement("div");
+          barLabel.style.cssText = `
+            font-size: 12px;
+            text-align: right;
+            margin-top: 4px;
+            opacity: 0.9;
+            font-weight: 500;
+            font-family: 'Noto Mono', monospace;
+          `;
+          barLabel.textContent = `${Math.round(book.helpfulRatio * 100)}%`;
+
+          cardLi.appendChild(barContainer);
+          cardLi.appendChild(barLabel);
+        }
+
+        // Card Counter (x of y)
+        const counterDiv = document.createElement("div");
+        counterDiv.style.cssText = `
+          position: absolute;
+          bottom: 10px;
+          left: 15px;
+          font-size: 10px;
+          opacity: 0.5;
+          font-family: 'Noto Mono', monospace;
+        `;
+        counterDiv.textContent = `${index + 1} of ${total}`;
+        cardLi.appendChild(counterDiv);
+
+        return cardLi;
+      }
+
+      // Parse Gradio API response and extract book recommendations
+      function parseAPIResponse(responseText) {
+        // Check if responseText is an array and get the first item if it is
+        if (Array.isArray(responseText)) {
+          responseText = responseText[0];
+        }
+
+        // Ensure responseText is a string
+        if (typeof responseText !== "string") {
+          console.error("Unexpected response format:", responseText);
+          return [];
+        }
+
+        // Extract book information using regex
+        const books = [];
+
+        // Book name regex
+        const bookRegex = /📚\s*(.+)/g;
+        // Author regex
+        const authorRegex = /👤\s*Author:\s*(.+)/g;
+        // Rating regex
+        const ratingRegex = /⭐\s*Rating:\s*(.+)/g;
+        // Price regex
+        const priceRegex = /💰\s*Price:\s*(.+)/g;
+        // Helpful Ratio regex
+        const ratioRegex = /📊\s*Helpful Ratio:\s*(.+)/g;
+        // Helpful Reviews section regex
+        const helpfulReviewsStartRegex = /✅\s*Helpful Reviews:/;
+        const criticalReviewsStartRegex = /⚠️\s*Critical Reviews:/;
+
+        // Get all matches for book names
+        let bookMatches = [];
+        let match;
+        while ((match = bookRegex.exec(responseText)) !== null) {
+          bookMatches.push({ name: match[1].trim(), index: match.index });
+        }
+
+        // For each book, find the associated information
+        bookMatches.forEach((bookMatch, i) => {
+          const book = { name: bookMatch.name };
+
+          // Get text segment for this book (from this book name to next book name or end)
+          const nextBookIndex =
+            i < bookMatches.length - 1
+              ? bookMatches[i + 1].index
+              : responseText.length;
+          const bookSegment = responseText.substring(
+            bookMatch.index,
+            nextBookIndex
+          );
+
+          // Extract author
+          const authorMatch = authorRegex.exec(bookSegment);
+          if (authorMatch) book.author = authorMatch[1].trim();
+
+          // Extract rating
+          const ratingMatch = ratingRegex.exec(bookSegment);
+          if (ratingMatch) book.rating = parseFloat(ratingMatch[1].trim());
+
+          // Extract price
+          const priceMatch = priceRegex.exec(bookSegment);
+          if (priceMatch) book.price = priceMatch[1].trim();
+
+          // Extract helpful ratio
+          const ratioMatch = ratioRegex.exec(bookSegment);
+          if (ratioMatch) book.helpfulRatio = parseFloat(ratioMatch[1].trim());
+
+          // Extract helpful reviews
+          let helpfulReviews = [];
+          const helpfulReviewsStartMatch =
+            helpfulReviewsStartRegex.exec(bookSegment);
+          const criticalReviewsStartMatch =
+            criticalReviewsStartRegex.exec(bookSegment);
+
+          if (helpfulReviewsStartMatch) {
+            const helpfulStartIndex =
+              helpfulReviewsStartMatch.index +
+              helpfulReviewsStartMatch[0].length;
+            const helpfulEndIndex = criticalReviewsStartMatch
+              ? criticalReviewsStartMatch.index
+              : bookSegment.length;
+            const helpfulSection = bookSegment
+              .substring(helpfulStartIndex, helpfulEndIndex)
+              .trim();
+
+            // Split by bullet points
+            const helpfulBullets = helpfulSection
+              .split("•")
+              .filter(Boolean)
+              .map((r) => r.trim());
+            helpfulReviews = helpfulBullets;
+          }
+
+          // Use the first helpful review as the main review
+          if (helpfulReviews.length > 0) {
+            book.review = helpfulReviews[0];
+          }
+
+          books.push(book);
+        });
+
+        return books;
+      }
+
+      // Function to display recommendation cards as a stack
+      function displayRecommendationCards(books) {
+        // Clear the card container
+        const cardContainer = document.getElementById("card-container");
+        cardContainer.innerHTML = "";
+
+        // Get navigation buttons
+        const prevBtn = document.getElementById("prev-card");
+        const nextBtn = document.getElementById("next-card");
+
+        // Create and append cards for each book
+        books.forEach((book, index) => {
+          const card = createRecommendationCard(book, index, books.length);
+          cardContainer.appendChild(card);
+        });
+
+        // Show the recommendations panel
+        document.getElementById("recommendation-cards").style.display = "block";
+
+        // Add responsiveness for mobile
+        adjustCardPositionForScreenSize();
+
+        // Track current active card
+        let currentCardIndex = 0;
+
+        // Show/hide navigation buttons based on card count
+        if (books.length <= 1) {
+          prevBtn.style.display = "none";
+          nextBtn.style.display = "none";
+        } else {
+          prevBtn.style.display = "block";
+          nextBtn.style.display = "block";
+
+          // Add helpful text to explain navigation
+          // const navHintDiv = document.createElement("div");
+          // navHintDiv.style.cssText = `
+          //   position: absolute;
+          //   bottom: 5px;
+          //   left: 0;
+          //   right: 0;
+          //   text-align: center;
+          //   font-size: 11px;
+          //   opacity: 0.6;
+          //   font-family: 'Noto Mono', monospace;
+          //   transition: opacity 0.3s;
+          // `;
+          // navHintDiv.textContent =
+          //   "Use arrows to navigate between recommendations";
+          // cardContainer.appendChild(navHintDiv);
+
+          // Fade out the hint after 5 seconds
+          setTimeout(() => {
+            navHintDiv.style.opacity = "0";
+          }, 5000);
+
+          // Add click handlers for navigation
+          prevBtn.onclick = function () {
+            if (currentCardIndex > 0) {
+              const cards = cardContainer.querySelectorAll(".book-card");
+
+              // Hide current card with animation
+              const currentCard = cards[currentCardIndex];
+              currentCard.style.animation = "slideOutRight 300ms forwards";
+
+              // Show previous card
+              currentCardIndex--;
+              const prevCard = cards[currentCardIndex];
+
+              // Reset all other cards
+              cards.forEach((card, idx) => {
+                if (idx !== currentCardIndex) {
+                  card.style.opacity =
+                    0.6 - Math.abs(currentCardIndex - idx) * 0.1;
+                  card.style.transform = `translateY(${
+                    Math.abs(currentCardIndex - idx) * 12
+                  }px) scale(${1 - Math.abs(currentCardIndex - idx) * 0.05})`;
+                  card.style.zIndex =
+                    books.length - Math.abs(currentCardIndex - idx);
+                  card.style.pointerEvents = "none";
+                  card.style.animation = "";
+                }
+              });
+
+              // Style active card
+              prevCard.style.opacity = 1;
+              prevCard.style.transform = "translateY(0) scale(1)";
+              prevCard.style.zIndex = books.length;
+              prevCard.style.pointerEvents = "auto";
+              prevCard.style.animation = "slideInLeft 300ms forwards";
+
+              // Update button states
+              nextBtn.disabled = false;
+              prevBtn.disabled = currentCardIndex === 0;
+            }
+          };
+
+          nextBtn.onclick = function () {
+            if (currentCardIndex < books.length - 1) {
+              const cards = cardContainer.querySelectorAll(".book-card");
+
+              // Hide current card with animation
+              const currentCard = cards[currentCardIndex];
+              currentCard.style.animation = "slideOutLeft 300ms forwards";
+
+              // Show next card
+              currentCardIndex++;
+              const nextCard = cards[currentCardIndex];
+
+              // Reset all other cards
+              cards.forEach((card, idx) => {
+                if (idx !== currentCardIndex) {
+                  card.style.opacity =
+                    0.6 - Math.abs(currentCardIndex - idx) * 0.1;
+                  card.style.transform = `translateY(${
+                    Math.abs(currentCardIndex - idx) * 12
+                  }px) scale(${1 - Math.abs(currentCardIndex - idx) * 0.05})`;
+                  card.style.zIndex =
+                    books.length - Math.abs(currentCardIndex - idx);
+                  card.style.pointerEvents = "none";
+                  card.style.animation = "";
+                }
+              });
+
+              // Style active card
+              nextCard.style.opacity = 1;
+              nextCard.style.transform = "translateY(0) scale(1)";
+              nextCard.style.zIndex = books.length;
+              nextCard.style.pointerEvents = "auto";
+              nextCard.style.animation = "slideInRight 300ms forwards";
+
+              // Update button states
+              prevBtn.disabled = false;
+              nextBtn.disabled = currentCardIndex === books.length - 1;
+            }
+          };
+
+          // Initialize button states
+          prevBtn.disabled = currentCardIndex === 0;
+          nextBtn.disabled = books.length <= 1;
+        }
+      }
+
+      function adjustCardPositionForScreenSize() {
+        const cards = document.getElementById("recommendation-cards");
+
+        if (window.innerWidth < 768) {
+          // Mobile layout - position at bottom
+          cards.style.top = "auto";
+          cards.style.bottom = "20px";
+          cards.style.left = "50%";
+          cards.style.transform = "translateX(-50%)";
+          cards.style.width = "90%";
+          cards.style.maxWidth = "380px";
+          cards.style.maxHeight = "70vh";
+          cards.style.paddingLeft = "15px";
+          cards.style.paddingRight = "15px";
+          cards.style.boxSizing = "border-box";
+        } else {
+          // Desktop layout - position at top left
+          cards.style.top = "100px";
+          cards.style.bottom = "auto";
+          cards.style.left = "25px";
+          cards.style.transform = "none";
+          cards.style.width = "400px";
+          cards.style.maxHeight = "80vh";
+          cards.style.paddingLeft = "15px";
+          cards.style.paddingRight = "15px";
+          cards.style.boxSizing = "border-box";
+        }
       }
 
       //////////////////// CONSTANTS & SETUP ////////////////////
@@ -649,6 +1182,9 @@
       const pointer = new THREE.Vector2();
       const tooltip = document.getElementById("tooltip");
 
+      let activeBookNames = null; // Global: if set, these points are active
+      console.log("Initial state: activeBookNames =", activeBookNames);
+
       //////////////////// DATA LOADING & VISUALIZATION ////////////////////
       // Load CSV and build point cloud
       const loader = document.querySelector(".loader");
@@ -674,9 +1210,12 @@
           depthTest: true,
           vertexShader: `
           attribute float size;
+          attribute float opacity;
           varying vec3 vColor;
+          varying float vOpacity;
           void main() {
             vColor = color;
+            vOpacity = opacity;
             vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
             gl_PointSize = size * (200.0 / -mvPos.z);
             gl_Position = projectionMatrix * mvPos;
@@ -684,14 +1223,15 @@
         `,
           fragmentShader: `
           varying vec3 vColor;
+          varying float vOpacity;
           void main() {
             float d = distance(gl_PointCoord, vec2(0.5));
             if (d > 0.5) discard;
-            // Add black stroke
+            // Stroke: scale alpha to ~0.1667 of inner opacity
             if (d > 0.45) {
-              gl_FragColor = vec4(0.0, 0.0, 0.0, 0.1);
+              gl_FragColor = vec4(0.0, 0.0, 0.0, vOpacity * 0.1667);
             } else {
-              gl_FragColor = vec4(vColor, 0.6);
+              gl_FragColor = vec4(vColor, vOpacity);
             }
           }
         `,
@@ -704,38 +1244,49 @@
           const positions = [];
           const colors = [];
           const sizes = [];
+          const opacities = [];
 
-          // Define book-like dimensions (thickness is much smaller)
-          const prismWidth = 55,
-            prismHeight = 80,
-            prismDepth = 10;
+          // If a search query is active, ignore the current filtered data and use allData
+          const baseData = activeBookNames !== null ? allData : data;
+          console.log(
+            "updatePoints: activeBookNames =",
+            activeBookNames,
+            "baseData count =",
+            baseData.length
+          );
 
-          // Group data by book/author
+          // Use different dimensions when not in search (as before) using baseData
+          const isFiltered =
+            activeBookNames !== null ? false : data.length < allData.length;
+          const prismWidth = isFiltered ? 20 : 55;
+          const prismHeight = isFiltered ? 30 : 80;
+          const prismDepth = isFiltered ? 5 : 10;
+
+          // Group data by book/author from baseData
           const groupMap = {};
-          data.forEach((d) => {
+          baseData.forEach((d) => {
             const key = d.name + "||" + d.author_clean;
             if (!groupMap[key]) groupMap[key] = [];
             groupMap[key].push(d);
           });
 
-          // For each group, assign a cluster offset
+          // For each group, assign cluster offset and push vertices
           Object.entries(groupMap).forEach(([key, group]) => {
-            // Compute the base position for the group inside a rectangular prism
+            // Compute base cluster position
             const baseX = (hashTo01(group[0].name) - 0.5) * prismWidth;
             const baseY = (hashTo01(group[0].author_clean) - 0.5) * prismHeight;
             const baseZ =
               (hashTo01(group[0].name + group[0].author_clean) - 0.5) *
               prismDepth;
 
-            const clusterRadius = 1.5; // tweak for more/less spread
+            const clusterRadius =
+              activeBookNames !== null ? 1.5 : isFiltered ? 0.8 : 1.5;
             group.forEach((d, i) => {
-              // Deterministic angle/offset for each review in the group
               const angle = (2 * Math.PI * i) / group.length;
               const offsetR =
                 clusterRadius * (0.5 + 0.5 * hashTo01(d.review_text));
               const dx = Math.cos(angle) * offsetR;
               const dy = Math.sin(angle) * offsetR;
-              // Add a small offset in z to spread points in 3D
               const dz = (hashTo01(d.review_text + "z") - 0.5) * clusterRadius;
               positions.push(baseX + dx, baseY + dy, baseZ + dz);
 
@@ -743,6 +1294,17 @@
               const col = new THREE.Color(hex);
               colors.push(col.r, col.g, col.b);
               sizes.push(sizeScale(d.review_text.length));
+
+              // Set opacity: if activeBookNames is set, only points whose d.name is active get full opacity
+              if (activeBookNames !== null) {
+                if (activeBookNames.includes(d.name)) {
+                  opacities.push(0.6);
+                } else {
+                  opacities.push(0.03);
+                }
+              } else {
+                opacities.push(0.6);
+              }
             });
           });
 
@@ -755,6 +1317,34 @@
             new THREE.Float32BufferAttribute(colors, 3)
           );
           geom.setAttribute("size", new THREE.Float32BufferAttribute(sizes, 1));
+          geom.setAttribute(
+            "opacity",
+            new THREE.Float32BufferAttribute(opacities, 1)
+          );
+
+          // Reposition camera if not in search mode as before
+          if (activeBookNames === null && positions.length > 0) {
+            const center = new THREE.Vector3();
+            for (let i = 0; i < positions.length; i += 3) {
+              center.x += positions[i];
+              center.y += positions[i + 1];
+              center.z += positions[i + 2];
+            }
+            center.divideScalar(positions.length / 3);
+
+            const distance = Math.max(
+              50,
+              Math.min(70, 60 + positions.length / 100)
+            );
+            camera.position.set(
+              center.x + distance,
+              center.y + distance * 0.5,
+              center.z + distance
+            );
+            camera.lookAt(center);
+            controls.target.copy(center);
+            controls.update();
+          }
         }
 
         // Initial render
@@ -762,8 +1352,11 @@
 
         // Search and reset handlers
         const searchInput = document.getElementById("author-search");
-        const suggestionsDiv = document.getElementById("suggestions");
         const labelCheckboxes = document.querySelectorAll(".label-checkbox");
+        const recommendationCards = document.getElementById(
+          "recommendation-cards"
+        );
+        const cardContainer = document.getElementById("card-container");
 
         // Function to get active label filters
         function getActiveLabels() {
@@ -778,55 +1371,98 @@
           const activeLabels = getActiveLabels();
 
           data = allData.filter((d) => {
-            const matchesAuthor =
-              query.length === 0 ||
-              d.author_clean.toLowerCase().includes(query);
             const matchesLabel = activeLabels.includes(d.predicted_label);
-            return matchesAuthor && matchesLabel;
+            return matchesLabel;
           });
 
           updatePoints();
         }
 
-        searchInput.addEventListener("input", () => {
-          const query = searchInput.value.trim().toLowerCase();
-          if (query.length === 0) {
-            suggestionsDiv.style.display = "none";
-            return;
-          }
-          const matches = allData.filter((d) =>
-            d.author_clean.toLowerCase().includes(query)
-          );
-          const uniqueAuthors = [
-            ...new Set(matches.map((d) => d.author_clean)),
-          ];
-          suggestionsDiv.innerHTML = uniqueAuthors
-            .map(
-              (author) =>
-                `<div style="padding: 5px; cursor: pointer;">${author}</div>`
-            )
-            .join("");
-          suggestionsDiv.style.display =
-            uniqueAuthors.length > 0 ? "block" : "none";
+        // Add close button functionality for recommendation cards
+        const closeCardsBtn = document.getElementById("close-cards-btn");
+
+        closeCardsBtn.addEventListener("mouseenter", () => {
+          closeCardsBtn.style.opacity = "1";
         });
 
-        suggestionsDiv.addEventListener("click", (e) => {
-          if (e.target.tagName === "DIV") {
-            searchInput.value = e.target.textContent;
-            suggestionsDiv.style.display = "none";
-            applyFilters();
-          }
+        closeCardsBtn.addEventListener("mouseleave", () => {
+          closeCardsBtn.style.opacity = "0.7";
         });
 
-        document.getElementById("search-btn").addEventListener("click", () => {
-          applyFilters();
+        closeCardsBtn.addEventListener("click", () => {
+          document.getElementById("recommendation-cards").style.display =
+            "none";
         });
+
+        // Add window resize listener to adjust card position
+        window.addEventListener("resize", adjustCardPositionForScreenSize);
+
+        document
+          .getElementById("search-btn")
+          .addEventListener("click", async () => {
+            const query = document.getElementById("author-search").value.trim();
+            if (!query) {
+              console.log("Empty query, skipping API call");
+              return;
+            }
+            try {
+              const { Client } = await import(
+                "https://cdn.jsdelivr.net/npm/@gradio/client?module"
+              );
+              const client = await Client.connect(
+                "joshstrupp/Self-Help-Book-Recommendation-Engine"
+              );
+              const result = await client.predict("/predict", {
+                concern: query,
+                num_books: 3,
+                num_reviews: 3,
+              });
+              console.log("API result:", result.data);
+
+              const books = parseAPIResponse(result.data);
+              console.log("Parsed book recommendations:", books);
+
+              if (books && books.length > 0) {
+                displayRecommendationCards(books);
+                const bookNames = books.map((book) => book.name);
+                activeBookNames = bookNames;
+                console.log("Active book names set to:", activeBookNames);
+                updatePoints();
+              } else {
+                console.log("No book recommendations found in API response");
+                // existing logic for no results card
+                const noResultsCard = document.createElement("div");
+                noResultsCard.style.cssText = `background: rgba(0, 0, 0, 0.9); color: #fff; border-radius: 10px; padding: 15px; margin-bottom: 15px; font-family: 'Lexend', sans-serif; width: 100%; text-align: center;`;
+                noResultsCard.innerHTML = `<div style="font-size: 16px; margin-bottom: 10px;">No books found for your query</div><div style="font-size: 14px; opacity: 0.7;">Try a different search term</div>`;
+                document.getElementById("card-container").innerHTML = "";
+                document
+                  .getElementById("card-container")
+                  .appendChild(noResultsCard);
+                document.getElementById("recommendation-cards").style.display =
+                  "block";
+              }
+            } catch (error) {
+              console.error("Error calling API:", error);
+              const errorCard = document.createElement("div");
+              errorCard.style.cssText = `background: rgba(0, 0, 0, 0.9); color: #fff; border-radius: 10px; padding: 15px; margin-bottom: 15px; font-family: 'Lexend', sans-serif; width: 100%; text-align: center;`;
+              errorCard.innerHTML = `<div style="font-size: 16px; margin-bottom: 10px;">Error finding recommendations</div><div style="font-size: 14px; opacity: 0.7;">Please try again later</div>`;
+              document.getElementById("card-container").innerHTML = "";
+              document.getElementById("card-container").appendChild(errorCard);
+              document.getElementById("recommendation-cards").style.display =
+                "block";
+            }
+          });
 
         document.getElementById("reset-btn").addEventListener("click", () => {
+          activeBookNames = null;
           data = allData;
-          searchInput.value = "";
-          suggestionsDiv.style.display = "none";
-          labelCheckboxes.forEach((checkbox) => (checkbox.checked = true));
+          console.log("Reset: activeBookNames cleared, showing full data.");
+          document.getElementById("author-search").value = "";
+          document
+            .querySelectorAll(".label-checkbox")
+            .forEach((checkbox) => (checkbox.checked = true));
+          document.getElementById("recommendation-cards").style.display =
+            "none";
           updatePoints();
         });
 
@@ -843,9 +1479,31 @@
           raycaster.setFromCamera(pointer, camera);
           const hits = raycaster.intersectObject(points);
           if (hits.length > 0) {
-            const hit = hits[0];
-            const idx = hit.index;
-            const d = data[idx];
+            let hit = null;
+            // If a search query is active, look for active points in the hits.
+            if (activeBookNames) {
+              const activeHits = hits.filter((h) => {
+                const d = allData[h.index];
+                return activeBookNames.includes(d.name);
+              });
+              if (activeHits.length > 0) {
+                hit = activeHits[0];
+              }
+            }
+            // If no active hit was found, default to first hit
+            if (!hit) {
+              hit = hits[0];
+              const dTemp = (activeBookNames !== null ? allData : data)[
+                hit.index
+              ];
+              if (activeBookNames && !activeBookNames.includes(dTemp.name)) {
+                console.log("Skipping hover for non-active point:", dTemp.name);
+                tooltip.style.display = "none";
+                return;
+              }
+            }
+            const baseDataForHover = activeBookNames ? allData : data;
+            const d = baseDataForHover[hit.index];
             tooltip.style.display = "block";
             tooltip.style.left = event.clientX + 8 + "px";
             tooltip.style.top = event.clientY + 8 + "px";
@@ -872,6 +1530,8 @@
           }
         }
 
+        // Remove the previous event listener setup (if any) and add the updated one:
+        window.removeEventListener("pointermove", onPointerMove);
         window.addEventListener("pointermove", onPointerMove);
 
         //////////////////// ANIMATION LOOP ////////////////////
@@ -883,7 +1543,7 @@
             points.rotation.y += 0.001;
           }
           controls.update();
-          console.log("Camera position:", camera.position);
+
           renderer.render(scene, camera);
         }
         animate();

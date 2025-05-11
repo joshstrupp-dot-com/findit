@@ -1,0 +1,922 @@
+<!-- //////////////////// HTML SETUP //////////////////// -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Data-Driven Review Sphere</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Noto+Mono:wght@400&display=swap"
+      rel="stylesheet"
+    />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <!-- //////////////////// STYLES //////////////////// -->
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #2b2b2b;
+        color: #fff;
+        font-family: "Lexend", sans-serif;
+      }
+      canvas {
+        display: block;
+      }
+      #tooltip {
+        position: absolute;
+        padding: 10px 10px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #fff;
+        border-radius: 5px;
+        pointer-events: none;
+        display: none;
+        font-size: 12px;
+        max-width: 350px;
+        word-wrap: break-word;
+        text-transform: none;
+        font-family: "Noto Mono", monospace;
+      }
+      #author-search,
+      #search-btn,
+      #reset-btn,
+      #info-btn {
+        background-color: rgba(0, 0, 0, 0.9);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 8px 12px;
+        margin-right: 8px;
+        font-family: "Noto Mono", monospace;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+      }
+      #author-search {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      #author-search::placeholder {
+        color: #aaa;
+        text-transform: uppercase;
+      }
+      #search-btn:hover,
+      #reset-btn:hover,
+      #info-btn:hover {
+        background-color: rgba(0, 0, 0, 0.95);
+        cursor: pointer;
+      }
+      #suggestions {
+        font-family: "Noto Mono", monospace;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        background: rgba(0, 0, 0, 0.9);
+        border-radius: 5px;
+      }
+      #label-filters {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.9);
+        padding: 15px;
+        border-radius: 5px;
+        font-family: "Noto Mono", monospace;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+      }
+      #label-filters div {
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      #label-filters label {
+        display: block;
+        margin: 4px 0;
+        cursor: pointer;
+      }
+      #label-filters span {
+        margin-left: 5px;
+        font-family: "Noto Mono", monospace;
+      }
+      /* Custom checkbox styling */
+      .label-checkbox {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #666;
+        border-radius: 5px;
+        background-color: rgba(0, 0, 0, 0.9);
+        cursor: pointer;
+        position: relative;
+        vertical-align: middle;
+        margin-right: 8px;
+      }
+      .label-checkbox:checked {
+        background-color: #333;
+      }
+      .label-checkbox:checked::after {
+        content: "✓";
+        position: absolute;
+        color: #fff;
+        font-size: 12px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .label-checkbox:hover {
+        border-color: #888;
+      }
+
+      /* iOS Style Checkbox */
+      .ios-checkbox {
+        --checkbox-size: 14px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        margin-bottom: 8px;
+        border-radius: 5px;
+      }
+
+      .ios-checkbox input {
+        display: none;
+      }
+
+      .checkbox-wrapper {
+        position: relative;
+        width: var(--checkbox-size);
+        height: var(--checkbox-size);
+        border-radius: 5px;
+        transition: transform 0.2s ease;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 10px;
+      }
+
+      .checkbox-bg {
+        position: absolute;
+        inset: 0;
+        border-radius: 5px;
+        border: 2px solid var(--checkbox-border);
+        background: rgba(0, 0, 0, 0.9);
+        transition: all 0.2s ease;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Checked State: fill with color, remove border */
+      .ios-checkbox input:checked + .checkbox-wrapper .checkbox-bg {
+        background: var(--checkbox-color);
+        border-color: var(--checkbox-color);
+      }
+
+      /* Remove checkmark icon entirely */
+      .checkbox-icon {
+        display: none !important;
+      }
+
+      /* Hover Effects */
+      .ios-checkbox:hover .checkbox-wrapper {
+        transform: scale(1.05);
+      }
+
+      /* Active Animation */
+      .ios-checkbox:active .checkbox-wrapper {
+        transform: scale(0.95);
+      }
+
+      /* Focus Styles */
+      .ios-checkbox input:focus + .checkbox-wrapper .checkbox-bg {
+        box-shadow: 0 0 0 2px var(--checkbox-bg);
+      }
+
+      /* Color Themes */
+      .ios-checkbox.very-helpful {
+        --checkbox-color: #68ffa9;
+        --checkbox-bg: rgba(104, 255, 169, 0.2);
+        --checkbox-border: #68ffa9;
+      }
+      .ios-checkbox.somewhat-helpful {
+        --checkbox-color: #ffff68;
+        --checkbox-bg: rgba(255, 255, 104, 0.2);
+        --checkbox-border: #ffff68;
+      }
+      .ios-checkbox.somewhat-harmful {
+        --checkbox-color: #ffae68;
+        --checkbox-bg: rgba(255, 174, 104, 0.2);
+        --checkbox-border: #ffae68;
+      }
+      .ios-checkbox.very-harmful {
+        --checkbox-color: #ff68a7;
+        --checkbox-bg: rgba(255, 104, 167, 0.2);
+        --checkbox-border: #ff68a7;
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+      .ios-checkbox input:checked + .checkbox-wrapper {
+        animation: bounce 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Toggle Button Styles */
+      .toggle-cont {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 30px;
+        border-radius: 9999px;
+        z-index: 1;
+      }
+
+      /* Loader Styles */
+      .loader {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        align-items: center;
+        z-index: 1000;
+        border-radius: 5px;
+      }
+
+      .bar {
+        display: inline-block;
+        width: 3px;
+        height: 20px;
+        background-color: rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+        animation: scale-up4 1s linear infinite;
+      }
+
+      .bar:nth-child(2) {
+        height: 35px;
+        margin: 0 5px;
+        animation-delay: 0.25s;
+      }
+
+      .bar:nth-child(3) {
+        animation-delay: 0.5s;
+      }
+
+      @keyframes scale-up4 {
+        20% {
+          background-color: #ffff;
+          transform: scaleY(1.5);
+        }
+
+        40% {
+          transform: scaleY(1);
+        }
+      }
+
+      .loading-text {
+        position: absolute;
+        top: 50px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: "Noto Mono", monospace;
+        font-size: 10pt;
+        opacity: 0.5;
+        color: white;
+        white-space: nowrap;
+      }
+
+      .toggle-cont .toggle-input {
+        display: none;
+      }
+
+      .toggle-cont .toggle-label {
+        cursor: pointer;
+        position: relative;
+        display: inline-block;
+        padding: 4px;
+        width: 100%;
+        height: 100%;
+        background: #272727;
+        border-radius: 5px;
+        box-sizing: content-box;
+        box-shadow: 0px 0px 16px -8px #fefefe;
+      }
+
+      .toggle-cont .toggle-label .cont-label-play {
+        position: relative;
+        width: 30px;
+        aspect-ratio: 1 / 1;
+        background: #5e5e5e;
+        border-radius: 5px;
+        transition: all 0.5s cubic-bezier(1, 0, 0, 1);
+      }
+
+      .toggle-cont .toggle-input:checked + .toggle-label .cont-label-play {
+        background: #f43f5e;
+        transform: translateX(30px);
+        border-radius: 5px;
+      }
+
+      .toggle-cont .toggle-label .label-play {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: inline-block;
+        width: 16px;
+        aspect-ratio: 1 / 1;
+        background: #fefefe;
+        border-radius: 5px;
+        clip-path: polygon(25% 0, 75% 50%, 25% 100%, 25% 51%);
+        transition: all 0.5s cubic-bezier(1, 0, 0, 1);
+      }
+
+      .toggle-cont .toggle-input:checked + .toggle-label .label-play {
+        width: 14px;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+        border-radius: 5px;
+      }
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <div
+      id="controls"
+      style="position: absolute; top: 10px; left: 10px; z-index: 1"
+    >
+      <input id="author-search" type="text" placeholder="Enter search query" />
+      <button id="search-btn">Search</button>
+      <button id="reset-btn">Reset</button>
+      <div
+        id="suggestions"
+        style="
+          position: absolute;
+          top: 30px;
+          left: 0;
+          background: rgba(0, 0, 0, 0.7);
+          color: #fff;
+          border-radius: 4px;
+          max-height: 200px;
+          overflow-y: auto;
+          display: none;
+        "
+      ></div>
+    </div>
+    <div class="toggle-cont">
+      <input
+        type="checkbox"
+        id="rotation-toggle"
+        class="toggle-input"
+        checked
+      />
+      <label for="rotation-toggle" class="toggle-label">
+        <div class="cont-label-play">
+          <div class="label-play"></div>
+        </div>
+      </label>
+    </div>
+    <div
+      id="info-container"
+      style="position: absolute; top: 10px; right: 10px; z-index: 1"
+    >
+      <button id="info-btn">What is this?</button>
+      <div
+        id="info-dropdown"
+        style="
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0, 0, 0, 0.9);
+          color: #fff;
+          border-radius: 5px;
+          padding: 25px;
+          max-width: 600px;
+          width: 90%;
+          display: none;
+          font-family: 'Noto Mono', monospace;
+          font-size: 12px;
+          line-height: 1.5;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+          z-index: 1000;
+        "
+      >
+        <button
+          class="close-btn"
+          style="
+            color: #ffffff;
+            background: none;
+            border: none;
+            font-size: 24px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            /* text-shadow: 0 0 1px #999; */
+          "
+        >
+          x
+        </button>
+        <p>
+          Self-help books promise to change your life or improve it through
+          various means - whether exercise, philosophy, or sheer willpower.
+          While star ratings tell us if readers liked a book, they don't reveal
+          whether the book actually helped or potentially harmed readers.
+        </p>
+        <p>
+          This project uses machine learning (zero-shot classification) to
+          analyze over 300,000 reviews across 10,000 self-help books,
+          categorizing them based on whether they were truly helpful or
+          potentially harmful to readers.
+        </p>
+        <p>
+          The results are visualized here as an interactive 3D sphere of data
+          points. Each point represents a review, with colors indicating the
+          sentiment (from very helpful to very harmful) and size showing the
+          review length. Reviews are clustered by book and author, revealing
+          patterns in how different works impact readers.
+        </p>
+        <p>
+          Use the search bar to find specific authors, toggle the checkboxes to
+          filter by review sentiment, and hover over any point to read the full
+          review text and book details.
+        </p>
+        <p>
+          Created by me,
+          <a
+            href="https://joshstrupp.com"
+            style="color: #68ffa9; text-decoration: none"
+            >Josh</a
+          >.
+        </p>
+      </div>
+    </div>
+    <div id="label-filters">
+      <div>Filter by Label:</div>
+      <label class="ios-checkbox very-helpful">
+        <input
+          type="checkbox"
+          class="label-checkbox"
+          value="Very Helpful"
+          checked
+        />
+        <div class="checkbox-wrapper">
+          <div class="checkbox-bg"></div>
+        </div>
+        <span style="color: rgba(104, 255, 169, 0.9)">Very Helpful</span>
+      </label>
+      <label class="ios-checkbox somewhat-helpful">
+        <input
+          type="checkbox"
+          class="label-checkbox"
+          value="Somewhat Helpful"
+          checked
+        />
+        <div class="checkbox-wrapper">
+          <div class="checkbox-bg"></div>
+        </div>
+        <span style="color: rgba(255, 255, 104, 0.9)">Somewhat Helpful</span>
+      </label>
+      <label class="ios-checkbox somewhat-harmful">
+        <input
+          type="checkbox"
+          class="label-checkbox"
+          value="Somewhat Harmful"
+          checked
+        />
+        <div class="checkbox-wrapper">
+          <div class="checkbox-bg"></div>
+        </div>
+        <span style="color: rgba(255, 174, 104, 0.9)">Somewhat Harmful</span>
+      </label>
+      <label class="ios-checkbox very-harmful">
+        <input
+          type="checkbox"
+          class="label-checkbox"
+          value="Very Harmful"
+          checked
+        />
+        <div class="checkbox-wrapper">
+          <div class="checkbox-bg"></div>
+        </div>
+        <span style="color: rgba(255, 104, 104, 0.9)">Very Harmful</span>
+      </label>
+    </div>
+    <canvas id="three-canvas"></canvas>
+    <div id="tooltip"></div>
+    <div class="loader">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="loading-text">Loading Reviews...</div>
+    </div>
+    <div
+      id="size-legend"
+      style="
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 2;
+        background: rgba(0, 0, 0, 0.9);
+        border-radius: 5px;
+        padding: 7px 12px 7px 12px;
+        text-align: center;
+        font-family: 'Noto Mono', monospace;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+        min-width: 90px;
+      "
+    >
+      <div
+        style="
+          font-weight: 400;
+          font-size: 12px;
+          letter-spacing: 0.04em;
+          color: #ffffff;
+          margin-bottom: 12px;
+          font-family: 'Noto Mono', monospace;
+        "
+      >
+        REVIEW LENGTH
+      </div>
+      <div
+        style="
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 2px;
+        "
+      >
+        <div style="display: flex; flex-direction: column; align-items: center">
+          <div
+            style="
+              width: 11px;
+              height: 11px;
+              background: #ddd;
+              border-radius: 50%;
+              margin-bottom: 0;
+            "
+          ></div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center">
+          <div
+            style="
+              width: 23px;
+              height: 23px;
+              background: #ddd;
+              border-radius: 50%;
+              margin-bottom: 0;
+            "
+          ></div>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 12px">
+        <div style="font-size: 0.95em; color: #fff; font-weight: 300">
+          50 char
+        </div>
+        <div style="font-size: 0.95em; color: #fff; font-weight: 300">
+          3k+ char
+        </div>
+      </div>
+    </div>
+
+    <!-- //////////////////// MAIN VISUALIZATION CODE //////////////////// -->
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      //////////////////// UTILITY FUNCTIONS ////////////////////
+      // Helper: string -> [0,1] hash
+      function hashTo01(str) {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) {
+          h = (h << 5) - h + str.charCodeAt(i);
+          h |= 0;
+        }
+        return (h >>> 0) / 0xffffffff;
+      }
+
+      //////////////////// CONSTANTS & SETUP ////////////////////
+      // Map labels to colors
+      const labelColor = {
+        "Very Harmful": "#FF68A7",
+        "Somewhat Harmful": "#FFAE68",
+        "Somewhat Helpful": "#FFFF68",
+        "Very Helpful": "#68FFA9",
+      };
+
+      const canvas = document.getElementById("three-canvas");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.set(
+        93.8249062976176,
+        -14.513052356383655,
+        68.44704045303914
+      );
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+      const tooltip = document.getElementById("tooltip");
+
+      //////////////////// DATA LOADING & VISUALIZATION ////////////////////
+      // Load CSV and build point cloud
+      const loader = document.querySelector(".loader");
+      d3.csv(
+        "https://findit-selfhelp.s3.us-east-1.amazonaws.com/zeroshot_analysis_results.csv"
+      ).then((raw) => {
+        loader.style.display = "none";
+        const allData = raw.filter((d) => d.predicted_label);
+        let data = allData;
+
+        // Precompute size scale using full dataset
+        const lengths = allData.map((d) => d.review_text.length);
+        const sizeScale = d3
+          .scaleLinear()
+          .domain(d3.extent(lengths))
+          .range([4, 20]);
+
+        // Create geometry and material once
+        const geom = new THREE.BufferGeometry();
+        const material = new THREE.ShaderMaterial({
+          vertexColors: true,
+          transparent: true,
+          depthTest: true,
+          vertexShader: `
+          attribute float size;
+          varying vec3 vColor;
+          void main() {
+            vColor = color;
+            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * (200.0 / -mvPos.z);
+            gl_Position = projectionMatrix * mvPos;
+          }
+        `,
+          fragmentShader: `
+          varying vec3 vColor;
+          void main() {
+            float d = distance(gl_PointCoord, vec2(0.5));
+            if (d > 0.5) discard;
+            // Add black stroke
+            if (d > 0.45) {
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 0.1);
+            } else {
+              gl_FragColor = vec4(vColor, 0.6);
+            }
+          }
+        `,
+        });
+        const points = new THREE.Points(geom, material);
+        scene.add(points);
+
+        // Function to update point positions, colors, sizes
+        function updatePoints() {
+          const positions = [];
+          const colors = [];
+          const sizes = [];
+
+          // Define book-like dimensions (thickness is much smaller)
+          const prismWidth = 55,
+            prismHeight = 80,
+            prismDepth = 10;
+
+          // Group data by book/author
+          const groupMap = {};
+          data.forEach((d) => {
+            const key = d.name + "||" + d.author_clean;
+            if (!groupMap[key]) groupMap[key] = [];
+            groupMap[key].push(d);
+          });
+
+          // For each group, assign a cluster offset
+          Object.entries(groupMap).forEach(([key, group]) => {
+            // Compute the base position for the group inside a rectangular prism
+            const baseX = (hashTo01(group[0].name) - 0.5) * prismWidth;
+            const baseY = (hashTo01(group[0].author_clean) - 0.5) * prismHeight;
+            const baseZ =
+              (hashTo01(group[0].name + group[0].author_clean) - 0.5) *
+              prismDepth;
+
+            const clusterRadius = 1.5; // tweak for more/less spread
+            group.forEach((d, i) => {
+              // Deterministic angle/offset for each review in the group
+              const angle = (2 * Math.PI * i) / group.length;
+              const offsetR =
+                clusterRadius * (0.5 + 0.5 * hashTo01(d.review_text));
+              const dx = Math.cos(angle) * offsetR;
+              const dy = Math.sin(angle) * offsetR;
+              // Add a small offset in z to spread points in 3D
+              const dz = (hashTo01(d.review_text + "z") - 0.5) * clusterRadius;
+              positions.push(baseX + dx, baseY + dy, baseZ + dz);
+
+              const hex = labelColor[d.predicted_label] || "#888";
+              const col = new THREE.Color(hex);
+              colors.push(col.r, col.g, col.b);
+              sizes.push(sizeScale(d.review_text.length));
+            });
+          });
+
+          geom.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(positions, 3)
+          );
+          geom.setAttribute(
+            "color",
+            new THREE.Float32BufferAttribute(colors, 3)
+          );
+          geom.setAttribute("size", new THREE.Float32BufferAttribute(sizes, 1));
+        }
+
+        // Initial render
+        updatePoints();
+
+        // Search and reset handlers
+        const searchInput = document.getElementById("author-search");
+        const suggestionsDiv = document.getElementById("suggestions");
+        const labelCheckboxes = document.querySelectorAll(".label-checkbox");
+
+        // Function to get active label filters
+        function getActiveLabels() {
+          return Array.from(labelCheckboxes)
+            .filter((checkbox) => checkbox.checked)
+            .map((checkbox) => checkbox.value);
+        }
+
+        // Function to apply all filters using recommendations
+        async function applyFilters() {
+          const query = searchInput.value.trim();
+          const activeLabels = getActiveLabels();
+          if (query.length === 0) {
+            data = allData;
+            updatePoints();
+            return;
+          }
+          console.log(
+            "Fetching recommendations from " +
+              window.location.origin +
+              "/recommend for query:",
+            query
+          );
+          try {
+            const response = await fetch("/recommend", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query }),
+            });
+            if (!response.ok) {
+              const errorMsg = await response.text();
+              console.error(
+                "Recommendation query failed with status",
+                response.status,
+                errorMsg
+              );
+              data = [];
+            } else {
+              const recData = await response.json();
+              const recommendedBooksSet = new Set(
+                recData.books.map((b) => b.toLowerCase())
+              );
+              const recommendedAuthorsSet = new Set(
+                recData.authors.map((a) => a.toLowerCase())
+              );
+              data = allData.filter((d) => {
+                const matchesLabel = activeLabels.includes(d.predicted_label);
+                const matchesRecommendation =
+                  recommendedBooksSet.has(d.name.toLowerCase()) ||
+                  recommendedAuthorsSet.has(d.author_clean.toLowerCase());
+                return matchesRecommendation && matchesLabel;
+              });
+            }
+          } catch (err) {
+            console.error("Error while fetching recommendations", err);
+            data = [];
+          }
+          updatePoints();
+        }
+
+        document.getElementById("search-btn").addEventListener("click", () => {
+          applyFilters();
+        });
+
+        document.getElementById("reset-btn").addEventListener("click", () => {
+          data = allData;
+          searchInput.value = "";
+          suggestionsDiv.style.display = "none";
+          labelCheckboxes.forEach((checkbox) => (checkbox.checked = true));
+          updatePoints();
+        });
+
+        // Hover handling
+        function onPointerMove(event) {
+          pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+          pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+          raycaster.setFromCamera(pointer, camera);
+          const hits = raycaster.intersectObject(points);
+          if (hits.length > 0) {
+            const hit = hits[0];
+            const idx = hit.index;
+            const d = data[idx];
+            tooltip.style.display = "block";
+            tooltip.style.left = event.clientX + 8 + "px";
+            tooltip.style.top = event.clientY + 8 + "px";
+            tooltip.innerHTML = `
+              <div style="font-size: 16px; text-transform: uppercase; margin-bottom: 8px;"><strong>${
+                d.name
+              }</strong></div>
+              <div style="opacity: 0.5; margin: 8px 0; font-family: 'Noto Mono', monospace;">${
+                d.author_clean
+              }</div>
+              <div style="margin-bottom: 8px;"><em style="color: ${
+                labelColor[d.predicted_label]
+              }; font-family: 'Noto Mono', monospace;">${
+              d.predicted_label
+            }</em></div>
+              <div>${
+                d.review_text.length > 500
+                  ? d.review_text.substring(0, 500) + "..."
+                  : d.review_text
+              }</div>
+            `;
+          } else {
+            tooltip.style.display = "none";
+          }
+        }
+
+        window.addEventListener("pointermove", onPointerMove);
+
+        //////////////////// ANIMATION LOOP ////////////////////
+        // render loop
+        function animate() {
+          requestAnimationFrame(animate);
+          const rotationToggle = document.getElementById("rotation-toggle");
+          if (rotationToggle.checked) {
+            points.rotation.y += 0.001;
+          }
+          controls.update();
+          // console.log("Camera position:", camera.position);
+          renderer.render(scene, camera);
+        }
+        animate();
+
+        // Add info popup toggle
+        const infoBtn = document.getElementById("info-btn");
+        const infoPopup = document.getElementById("info-dropdown");
+        const closeBtn = infoPopup.querySelector(".close-btn");
+
+        infoBtn.addEventListener("click", () => {
+          infoPopup.style.display = "block";
+        });
+
+        closeBtn.addEventListener("click", () => {
+          infoPopup.style.display = "none";
+        });
+
+        // Close popup when clicking outside
+        document.addEventListener("click", (e) => {
+          if (e.target === infoPopup) {
+            infoPopup.style.display = "none";
+          }
+        });
+      });
+
+      //////////////////// WINDOW RESIZE HANDLER ////////////////////
+      // handle resize
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>
