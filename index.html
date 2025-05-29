@@ -455,10 +455,87 @@
         filter: brightness(1.2);
         pointer-events: none;
       }
+      #controls {
+        position: absolute;
+        top: 25px;
+        left: 25px;
+        z-index: 1;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+      }
+      @media (max-width: 1000px) and (min-width: 600px) {
+        #controls {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+          top: 20px;
+          left: 20px;
+        }
+        #author-search {
+          min-width: 220px;
+          width: 60vw;
+          max-width: 90vw;
+        }
+        #search-btn,
+        #reset-btn {
+          margin-right: 8px;
+          margin-top: 0;
+          width: auto;
+          font-size: 12px;
+          display: inline-block;
+        }
+        #logo-container {
+          top: 20px !important;
+          right: 20px !important;
+        }
+        #logo-container img {
+          height: 60px !important;
+          width: auto !important;
+        }
+        #controls-row {
+          display: flex;
+          flex-direction: row;
+          gap: 8px;
+        }
+      }
+      @media (max-width: 600px) {
+        #logo-container img {
+          height: 40px !important;
+        }
+      }
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
   <body>
+    <div
+      id="mobile-message"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #181818;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: #fff;
+        font-family: 'Lexend', sans-serif;
+        font-size: 2rem;
+        padding: 40px;
+        box-sizing: border-box;
+      "
+    >
+      Help awaits...<br />on your desktop.<br /><span
+        style="font-size: 1.2rem; opacity: 0.7"
+        >Try again from a larger screen!</span
+      >
+    </div>
     <div
       id="controls"
       style="position: absolute; top: 25px; left: 25px; z-index: 1"
@@ -468,8 +545,10 @@
         type="text"
         placeholder="Enter your concern or question"
       />
-      <button id="search-btn">Search</button>
-      <button id="reset-btn">Reset</button>
+      <div id="controls-row">
+        <button id="search-btn">Search</button>
+        <button id="reset-btn">Reset</button>
+      </div>
     </div>
     <div
       id="logo-container"
@@ -1720,6 +1799,28 @@
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
       });
+
+      function isMobileDevice() {
+        return (
+          /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          ) || window.innerWidth < 600
+        );
+      }
+      function handleMobileDisplay() {
+        const mobileMsg = document.getElementById("mobile-message");
+        if (isMobileDevice()) {
+          // Hide all other body children except the message
+          Array.from(document.body.children).forEach((child) => {
+            if (child.id !== "mobile-message") child.style.display = "none";
+          });
+          mobileMsg.style.display = "flex";
+        } else {
+          mobileMsg.style.display = "none";
+        }
+      }
+      window.addEventListener("DOMContentLoaded", handleMobileDisplay);
+      window.addEventListener("resize", handleMobileDisplay);
     </script>
   </body>
 </html>
